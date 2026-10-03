@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZR-Service - Management System & Profit Analytics</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                            950: '#172554',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #printableNotaArea, #printableNotaArea * { visibility: visible; }
+            #printableNotaArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-12">
+
+    <!-- Header / Navbar -->
+    <header class="bg-brand-900 text-white shadow-md sticky top-0 z-30 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-600 p-2.5 rounded-xl shadow-inner text-white">
+                    <i class="fa-solid fa-screwdriver-wrench text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        ZR-Service <span class="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full font-semibold">+ Sparepart & Laba</span>
+                    </h1>
+                    <p class="text-xs text-brand-200">Manajemen Service, Stok Sparepart & Perhitungan Keuntungan</p>
+                </div>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex items-center bg-brand-950 p-1 rounded-xl border border-brand-800">
+                <button id="tabAdminBtn" onclick="switchView('admin')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-brand-600 text-white shadow-sm">
+                    <i class="fa-solid fa-user-shield mr-1"></i> Dashboard Admin
+                </button>
+                <button id="tabTrackingBtn" onclick="switchView('tracking')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-brand-200 hover:text-white">
+                    <i class="fa-solid fa-magnifying-glass-location mr-1"></i> Portal Cek Status
+                </button>
+            </div>
+
+            <!-- Status Firebase & Sync Control -->
+            <div class="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
+                <div id="syncStatusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-brand-800 text-brand-200 border border-brand-700">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span>Menghubungkan Database...</span>
+                </div>
+
+                <button onclick="exportBackupData()" title="Download Backup JSON" class="bg-brand-700 hover:bg-brand-600 text-white border border-brand-500 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Backup</span>
+                </button>
+                <label title="Upload & Restore Backup JSON" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-upload"></i> <span class="hidden sm:inline">Restore</span>
+                    <input type="file" id="importFileInput" accept=".json" onchange="importBackupData(event)" class="hidden">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+
+        <!-- ======================================================== -->
+        <!-- VIEW 1: DASHBOARD UTAMA ADMIN / KASIR                   -->
+        <!-- ======================================================== -->
+        <div id="viewAdmin" class="space-y-8">
+
+            <!-- METRICS & STATISTIK REKAP SERVICE + ANALISIS KEUNTUNGAN -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SERVICE PROSES</p>
+                        <h3 id="statProsesCount" class="text-xl font-black text-brand-600 mt-1">0 Unit</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Dalam pengerjaan</p>
+                    </div>
+                    <div class="p-3 bg-brand-50 rounded-2xl text-brand-600">
+                        <i class="fa-solid fa-gears text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL OMSET KAS</p>
+                        <h3 id="statOmsetTotal" class="text-xl font-black text-slate-800 mt-1">Rp 0</h3>
+                        <p id="statLunasCount" class="text-[11px] text-slate-500 mt-0.5">0 nota diserahkan</p>
+                    </div>
+                    <div class="p-3 bg-indigo-50 rounded-2xl text-indigo-600">
+                        <i class="fa-solid fa-file-invoice-dollar text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">LABA JASA SERVICE</p>
+                        <h3 id="statLabaJasaTotal" class="text-xl font-black text-blue-600 mt-1">Rp 0</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Murni pendapatan jasa</p>
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-2xl text-blue-600">
+                        <i class="fa-solid fa-hand-holding-dollar text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">LABA SPAREPART</p>
+                        <h3 id="statLabaSparepartTotal" class="text-xl font-black text-amber-600 mt-1">Rp 0</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Margin harga jual - modal</p>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-2xl text-amber-600">
+                        <i class="fa-solid fa-boxes-packing text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center bg-gradient-to-br from-emerald-50 to-white border-emerald-200">
+                    <div>
+                        <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">TOTAL KEUNTUNGAN BERSIH</p>
+                        <h3 id="statTotalProfit" class="text-xl font-black text-emerald-600 mt-1">Rp 0</h3>
+                        <p class="text-[11px] text-emerald-600 mt-0.5">Laba Jasa + Laba Sparepart</p>
+                    </div>
+                    <div class="p-3 bg-emerald-500 rounded-2xl text-white shadow-md">
+                        <i class="fa-solid fa-sack-dollar text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHARTS SECTION -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-sm sm:text-base flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-brand-600"></i> Grafik Tren Omset vs Keuntungan Bersih
+                        </h3>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="chartTrenService"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-800 text-sm sm:text-base mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-brand-600"></i> Distribusi Status Service
+                    </h3>
+                    <div class="h-64 flex items-center justify-center">
+                        <canvas id="chartStatusPie"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DAFTAR WORK ORDER SERVICE -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                        <h3 class="font-extrabold text-slate-800 text-base sm:text-lg flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-brand-600"></i> Daftar Work Order Perbaikan Unit
+                        </h3>
+                        <p class="text-xs text-slate-400">Tersinkron real-time dengan rincian biaya & estimasi keuntungan</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                        <div class="relative flex-1 md:w-64">
+                            <input type="text" id="searchInput" oninput="onServiceFilterChange()" placeholder="Cari nota / nama / unit..." class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                        </div>
+                        <select id="filterStatus" onchange="onServiceFilterChange()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="ALL">Semua Status</option>
+                            <option value="Menunggu">Menunggu</option>
+                            <option value="Proses">Dalam Proses</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Diserahkan">Diserahkan</option>
+                            <option value="Batal">Batal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200">
+                                <th class="p-3">No. Nota / Tgl</th>
+                                <th class="p-3">Pelanggan</th>
+                                <th class="p-3">Unit & Keluhan</th>
+                                <th class="p-3">Rincian Sparepart & Jasa</th>
+                                <th class="p-3 text-right">Total Biaya</th>
+                                <th class="p-3 text-right text-emerald-700 bg-emerald-50/50">Est. Keuntungan</th>
+                                <th class="p-3 text-center">Foto Unit</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelServiceBody" class="divide-y divide-slate-100">
+                            <!-- Populated by JS Firebase -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- PAGINATION WORK ORDER -->
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                    <div id="servicePaginationInfo">Menampilkan 0 data</div>
+                    <div class="flex items-center gap-2">
+                        <button id="btnPrevServicePage" onclick="changeServicePage(-1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+                        </button>
+                        <span id="servicePageIndicator" class="font-bold text-slate-700">Hal 1 dari 1</span>
+                        <button id="btnNextServicePage" onclick="changeServicePage(1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                            Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORM INPUT WORK ORDER & MANAGEMENT MASTER DATA -->
+            <div class="pt-6 border-t-2 border-dashed border-slate-300 space-y-8">
+                
+                <!-- MASTER SPAREPART (DIBUAT LEBIH BESAR & LUAS DI ATAS) -->
+                <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="p-2.5 bg-emerald-50 rounded-xl text-emerald-600">
+                                <i class="fa-solid fa-boxes-stacked text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-extrabold text-slate-800 text-base sm:text-lg">Master Data Sparepart</h3>
+                                <p class="text-xs text-slate-400">Kelola stok barang, harga modal, dan harga jual sparepart toko</p>
+                            </div>
+                        </div>
+
+                        <!-- SEARCH SPAREPART -->
+                        <div class="relative w-full sm:w-72">
+                            <input type="text" id="spSearchInput" oninput="onSparepartSearchChange()" placeholder="Cari sparepart..." class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                        </div>
+                    </div>
+
+                    <!-- Form Add Sparepart -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <span class="text-xs font-bold text-slate-700 block"><i class="fa-solid fa-plus-circle text-emerald-600"></i> Tambah Sparepart Baru</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                            <input type="text" id="spNama" placeholder="Nama Sparepart (ex: Baterai iPhone 11)" class="border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                            <input type="number" id="spStok" placeholder="Jumlah Stok" class="border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                            <input type="number" id="spHargaBeli" placeholder="Harga Beli / Modal (Rp)" class="border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                            <input type="number" id="spHargaJual" placeholder="Harga Jual (Rp)" class="border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                        </div>
+                        <div class="flex justify-end">
+                            <button onclick="tambahMasterSparepart()" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-floppy-disk"></i> Simpan Sparepart
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Daftar Sparepart Table -->
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-100 font-bold border-b border-slate-200 text-slate-600">
+                                <tr>
+                                    <th class="p-3">Nama Sparepart</th>
+                                    <th class="p-3">Stok</th>
+                                    <th class="p-3">Harga Beli (Modal)</th>
+                                    <th class="p-3">Harga Jual</th>
+                                    <th class="p-3 text-emerald-700">Margin Laba / Unit</th>
+                                    <th class="p-3 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelMasterSparepartBody" class="divide-y divide-slate-100">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- PAGINATION SPAREPART -->
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 text-xs text-slate-500">
+                        <div id="spPaginationInfo">Menampilkan 0 data</div>
+                        <div class="flex items-center gap-2">
+                            <button id="btnPrevSpPage" onclick="changeSparepartPage(-1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+                            </button>
+                            <span id="spPageIndicator" class="font-bold text-slate-700">Hal 1 dari 1</span>
+                            <button id="btnNextSpPage" onclick="changeSparepartPage(1)" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                                Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- FORM WORK ORDER BARU -->
+                    <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                        <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                            <div class="p-2 bg-brand-50 rounded-xl text-brand-600">
+                                <i class="fa-solid fa-square-plus text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-base">Buat Work Order Service Baru</h3>
+                                <p class="text-xs text-slate-400">Input pelanggan, unit, penggantian sparepart & rincian biaya</p>
+                            </div>
+                        </div>
+
+                        <form id="formService" onsubmit="simpanServiceBaru(event)" class="space-y-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Pelanggan</label>
+                                    <input type="text" id="namaPelanggan" required placeholder="Contoh: Budi Santoso" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50/50">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Nomor WhatsApp / Telp</label>
+                                    <input type="text" id="telpPelanggan" required placeholder="08123456789" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50/50">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Perangkat / Nama Unit</label>
+                                    <input type="text" id="namaUnit" required placeholder="Ex: Laptop Asus ROG / iPhone 12" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50/50">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Layanan</label>
+                                    <select id="selectJenisLayanan" required class="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50/50">
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Tugaskan Teknisi</label>
+                                    <select id="selectTeknisi" required class="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50/50">
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- INPUT DYNAMIC SPAREPART YANG DIGANTI -->
+                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                                <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                                    <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-boxes-stacked text-brand-600"></i> Sparepart Terganti (Terhubung ke Master Stock)
+                                    </label>
+                                    <button type="button" onclick="tambahBarisSparepartOrder()" class="bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold px-3 py-1 rounded-lg border border-brand-200 transition flex items-center gap-1">
+                                        <i class="fa-solid fa-plus"></i> Tambah Sparepart
+                                    </button>
+                                </div>
+
+                                <div id="sparepartOrderContainer" class="space-y-2 overflow-visible">
+                                    <!-- Dynamic rows generated by JS -->
+                                </div>
+                            </div>
+
+                            <!-- BIAYA JASA & TOTAL -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Biaya Jasa Service (Rp)</label>
+                                    <input type="number" id="biayaJasaInput" oninput="hitungTotalOrderService()" value="0" required class="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-bold text-brand-900 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
+                                    <span class="text-[10px] text-slate-400 mt-0.5 block">*Laba murni 100% untuk jasa</span>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Total Biaya Perbaikan (Sparepart + Jasa)</label>
+                                    <input type="text" id="totalBiayaDisplay" readonly value="Rp 0" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-extrabold text-emerald-600 bg-slate-100 cursor-not-allowed">
+                                    <span id="estLabaOrderDisplay" class="text-[10px] font-bold text-emerald-700 mt-0.5 block">Est. Laba Bersih: Rp 0</span>
+                                </div>
+                            </div>
+
+                            <!-- INPUT FOTO SEBELUM PERBAIKAN -->
+                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                                <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-camera text-brand-600"></i> Foto Kondisi Perangkat Sebelum Service (Before)
+                                </label>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <input type="file" id="fotoSebelumInput" accept="image/*" onchange="previewFotoSebelum(event)" class="flex-1 text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer">
+                                    
+                                    <!-- Dynamic Camera Trigger Buttons -->
+                                    <label class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                                        <i class="fa-solid fa-camera"></i> <span>Kamera HP</span>
+                                        <input type="file" accept="image/*" capture="environment" onchange="previewFotoSebelum(event)" class="hidden">
+                                    </label>
+                                    <button type="button" onclick="bukaModalKameraDirect('sebelum')" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                                        <i class="fa-solid fa-video"></i> <span>Kamera Web</span>
+                                    </button>
+                                </div>
+
+                                <div id="previewSebelumContainer" class="hidden mt-2 relative inline-block">
+                                    <img id="previewSebelumImg" class="h-28 rounded-xl object-cover border border-slate-300 shadow-sm">
+                                    <button type="button" onclick="hapusFotoSebelum()" class="absolute -top-2 -right-2 bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md hover:bg-rose-700">&times;</button>
+                                </div>
+                            </div>
+
+                            <!-- CHECKLIST AWAL -->
+                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                                    <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-clipboard-check text-brand-600"></i> Checklist Pengecekan Awal Perangkat
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs" id="preChecklistContainer"></div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Keluhan Utama & Detail Kerusakan</label>
+                                <textarea id="keluhanUnit" rows="2" required placeholder="Detail masalah perangkat..." class="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50/50"></textarea>
+                            </div>
+
+                            <div class="flex justify-end pt-2 border-t border-slate-100">
+                                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl transition shadow-md flex items-center gap-2 text-xs sm:text-sm">
+                                    <i class="fa-solid fa-floppy-disk"></i> Simpan Work Order Service
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- MASTER TEKNISI & LAYANAN -->
+                    <div class="space-y-6">
+                        <!-- Master Teknisi -->
+                        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div class="flex items-center gap-2.5 pb-2 mb-2 border-b border-slate-100">
+                                <div class="p-2 bg-amber-50 rounded-xl text-amber-600">
+                                    <i class="fa-solid fa-users-gear text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-800 text-base">Master Teknisi</h3>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="inputTeknisiBaru" placeholder="Nama teknisi baru..." class="flex-1 border border-slate-300 rounded-xl p-2 text-xs focus:outline-none bg-slate-50">
+                                <button onclick="tambahMasterTeknisi()" type="button" class="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl">Tambah</button>
+                            </div>
+                            <div id="listTeknisi" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Master Layanan -->
+                        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div class="flex items-center gap-2.5 pb-2 mb-2 border-b border-slate-100">
+                                <div class="p-2 bg-indigo-50 rounded-xl text-indigo-600">
+                                    <i class="fa-solid fa-screwdriver text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-800 text-base">Jenis Layanan</h3>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="inputLayananBaru" placeholder="Jenis service..." class="flex-1 border border-slate-300 rounded-xl p-2 text-xs focus:outline-none bg-slate-50">
+                                <button onclick="tambahMasterLayanan()" type="button" class="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl">Tambah</button>
+                            </div>
+                            <div id="listLayanan" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ======================================================== -->
+        <!-- VIEW 2: PORTAL CEK STATUS SERVICE PUBLIC                 -->
+        <!-- ======================================================== -->
+        <div id="viewTracking" class="hidden max-w-2xl mx-auto space-y-6 pt-4">
+            <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-md border border-slate-200 text-center space-y-4">
+                <div class="w-16 h-16 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-inner">
+                    <i class="fa-solid fa-magnifying-glass-location"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-extrabold text-slate-800">Lacak Status Service Anda</h2>
+                    <p class="text-xs text-slate-500 mt-1">Masukkan Nomor Nota / WhatsApp untuk melihat status perbaikan, foto unit & rincian biaya</p>
+                </div>
+
+                <div class="flex gap-2 max-w-md mx-auto pt-2">
+                    <input type="text" id="trackQueryInput" placeholder="Contoh: PRO-261003-1234 / 0812..." class="flex-1 border border-slate-300 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50">
+                    <button onclick="lacakStatusPelanggan()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-3 rounded-xl transition text-xs sm:text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-search"></i> Lacak
+                    </button>
+                </div>
+            </div>
+
+            <!-- HASIL TRACKING -->
+            <div id="trackingResultArea" class="hidden bg-white p-6 rounded-3xl shadow-md border border-slate-200 space-y-6"></div>
+        </div>
+
+    </main>
+
+
+    <!-- ======================================================== -->
+    <!-- MODAL 1: VIEW INSPEKSI & FOTO PERANGKAT                  -->
+    <!-- ======================================================== -->
+    <div id="modalInspection" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-check text-brand-600"></i> Detail Inspeksi & Dokumentasi Foto
+                </h3>
+                <button onclick="closeInspectionModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            </div>
+            
+            <div class="text-xs space-y-1">
+                <p><strong>No. Nota:</strong> <span id="modalNota" class="text-brand-600 font-semibold"></span></p>
+                <p><strong>Pelanggan:</strong> <span id="modalPelanggan"></span></p>
+                <p><strong>Perangkat:</strong> <span id="modalUnit"></span></p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="border rounded-xl p-2 bg-slate-50 text-center">
+                    <span class="text-[10px] font-bold text-slate-500 block mb-1">Foto Sebelum (Before)</span>
+                    <div id="modalFotoSebelumBox" class="h-28 flex items-center justify-center bg-slate-100 rounded-lg overflow-hidden border"></div>
+                </div>
+                <div class="border rounded-xl p-2 bg-slate-50 text-center">
+                    <span class="text-[10px] font-bold text-slate-500 block mb-1">Foto Sesudah (After)</span>
+                    <div id="modalFotoSesudahBox" class="h-28 flex items-center justify-center bg-slate-100 rounded-lg overflow-hidden border"></div>
+                </div>
+            </div>
+
+            <div class="border rounded-xl p-3 bg-slate-50">
+                <p class="font-bold text-xs text-slate-700 mb-2 border-b pb-1">Hasil Checklist Awal Penerimaan:</p>
+                <div id="modalChecklistList" class="grid grid-cols-2 gap-2 text-xs"></div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="closeInspectionModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ======================================================== -->
+    <!-- MODAL 2: CETAK / NOTA TANDA TERIMA SERVICE (PRINTABLE)    -->
+    <!-- ======================================================== -->
+    <div id="modalNotaService" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 overflow-y-auto max-h-[90vh]">
+            
+            <!-- Printable Area -->
+            <div id="printableNotaArea" class="p-4 border border-slate-200 rounded-2xl bg-white space-y-4 text-xs">
+                <div class="flex justify-between items-start border-b border-slate-300 pb-3">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-brand-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-screwdriver-wrench text-brand-600"></i> ZR-Service
+                        </h2>
+                        <p class="text-[10px] text-slate-500">Pusat Layanan Service HP & Laptop Pro</p>
+                    </div>
+                    <div class="text-right">
+                        <span id="notaNoDisplay" class="font-extrabold text-brand-600 block text-sm"></span>
+                        <span id="notaTglDisplay" class="text-[10px] text-slate-400"></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div>
+                        <p class="font-bold text-slate-500 text-[9px] uppercase">PELANGGAN</p>
+                        <p id="notaPelangganDisplay" class="font-extrabold text-slate-800"></p>
+                        <p id="notaTelpDisplay" class="text-slate-500"></p>
+                    </div>
+                    <div>
+                        <p class="font-bold text-slate-500 text-[9px] uppercase">TEKNISI / PETUGAS</p>
+                        <p id="notaTeknisiDisplay" class="font-bold text-slate-800"></p>
+                        <p id="notaLayananDisplay" class="text-slate-500"></p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <p class="font-bold text-slate-700 border-b pb-1">Detail Perangkat & Keluhan:</p>
+                    <div class="flex justify-between text-slate-700">
+                        <span>Perangkat / Unit:</span>
+                        <span id="notaUnitDisplay" class="font-bold text-slate-900"></span>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-xl border text-slate-700">
+                        <span class="font-bold block text-[10px]">Deskripsi Keluhan:</span>
+                        <p id="notaKeluhanDisplay" class="italic text-[11px]"></p>
+                    </div>
+                </div>
+
+                <!-- Sparepart & Jasa Breakdown Nota -->
+                <div class="space-y-2 border-t pt-2">
+                    <p class="font-bold text-slate-700 border-b pb-1">Rincian Perbaikan & Sparepart:</p>
+                    <table class="w-full text-left text-[11px]">
+                        <thead>
+                            <tr class="border-b text-slate-500">
+                                <th class="pb-1">Deskripsi</th>
+                                <th class="pb-1 text-center">Qty</th>
+                                <th class="pb-1 text-right">Harga</th>
+                                <th class="pb-1 text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notaRincianBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="border-t border-dashed border-slate-300 pt-2 flex justify-between items-center text-sm font-extrabold">
+                    <span>Total Pembayaran:</span>
+                    <span id="notaBiayaDisplay" class="text-brand-900 text-base"></span>
+                </div>
+
+                <div class="border-t pt-2 text-[9px] text-slate-400 space-y-1 text-center">
+                    <p>* Harap membawa Nota ini saat pengambilan unit service.</p>
+                    <p>* Cek status service online & foto unit di portal web kami menggunakan No. Nota.</p>
+                </div>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="flex justify-between items-center pt-2 no-print">
+                <button onclick="salinTeksNotaWA()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-brands fa-whatsapp"></i> Salin Teks WA
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="closeNotaModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl transition">Tutup</button>
+                    <button onclick="window.print()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> Cetak Nota / PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ======================================================== -->
+    <!-- MODAL 3: UPLOAD / AMBIL FOTO SESUDAH (AFTER)             -->
+    <!-- ======================================================== -->
+    <div id="modalUploadAfter" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-camera text-emerald-600"></i> Upload / Foto Hasil Perbaikan Selesai
+                </h3>
+                <button onclick="closeUploadAfterModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            </div>
+            
+            <p class="text-xs text-slate-500">Unggah file atau ambil foto unit langsung menggunakan kamera perangkat.</p>
+
+            <div class="space-y-2">
+                <input type="file" id="fotoSesudahInput" accept="image/*" onchange="previewFotoSesudah(event)" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
+                
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <label class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                        <i class="fa-solid fa-camera"></i> <span>Kamera HP</span>
+                        <input type="file" accept="image/*" capture="environment" onchange="previewFotoSesudah(event)" class="hidden">
+                    </label>
+                    <button type="button" onclick="bukaModalKameraDirect('sesudah')" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-video"></i> <span>Kamera Web</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="previewSesudahContainer" class="hidden text-center relative inline-block w-full">
+                <img id="previewSesudahImg" class="h-32 mx-auto rounded-xl object-cover border border-slate-300 shadow-sm">
+                <button type="button" onclick="hapusFotoSesudah()" class="absolute top-0 right-2 bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md hover:bg-rose-700">&times;</button>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t">
+                <button onclick="closeUploadAfterModal()" class="bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl">Batal</button>
+                <button onclick="simpanFotoSesudah()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md">Simpan Foto</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ======================================================== -->
+    <!-- MODAL 4: INTERACTIVE WEBCAM CAMERA CAPTURE               -->
+    <!-- ======================================================== -->
+    <div id="modalWebcamDirect" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md hidden items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-5 space-y-4 text-center">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-video text-brand-600 animate-pulse"></i> Ambil Foto Kamera Langsung
+                </h3>
+                <button onclick="tutupModalKameraDirect()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <div class="relative bg-slate-950 rounded-2xl overflow-hidden aspect-video border-2 border-slate-800 shadow-inner flex items-center justify-center">
+                <video id="webcamVideoFeed" autoplay playsinline class="w-full h-full object-cover"></video>
+                <canvas id="webcamCanvas" class="hidden"></canvas>
+            </div>
+
+            <div class="flex justify-center gap-3 pt-2">
+                <button onclick="tutupModalKameraDirect()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl transition">
+                    Batal
+                </button>
+                <button onclick="jepretKameraWebcam()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-lg flex items-center gap-2">
+                    <i class="fa-solid fa-camera"></i> Ambil Jepretan
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Firebase Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getFirestore, 
+            collection, 
+            onSnapshot, 
+            addDoc, 
+            deleteDoc, 
+            updateDoc, 
+            doc,
+            setDoc
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMjM-vFWSzIv3VASrFhV4mv0p9sDtUWWo",
+            authDomain: "patunganqu.firebaseapp.com",
+            projectId: "patunganqu",
+            storageBucket: "patunganqu.firebasestorage.app",
+            messagingSenderId: "1042418652352",
+            appId: "1:1042418652352:web:86f844d01d68e1773f8925"
+        };
+
+        window.appState = {
+            services: [],
+            sparepartList: [],
+            teknisiList: ["Andi Teknisi", "Budi Hardware", "Cahyo Software"],
+            teknisiDocs: [],
+            layananList: ["Install OS / Software", "Ganti LCD / Screen", "Perbaikan Hardware", "Clean Up Service"],
+            layananDocs: [],
+            checklistItems: [
+                "Layar / LCD", "Fisik Casing", "Keyboard / Tombol", 
+                "Baterai / Power", "Kamera", "Audio / Speaker", 
+                "WiFi / Bluetooth", "Charger / Adaptor"
+            ],
+            currentActiveNotaItem: null,
+            tempFotoSebelum: null,
+            tempFotoSesudah: null,
+            targetServiceIdAfter: null,
+            activeCameraTarget: null, // 'sebelum' atau 'sesudah'
+            cameraStream: null,
+            db: null,
+
+            // State Pagination & Search
+            servicePage: 1,
+            sparepartPage: 1,
+            pageSize: 10
+        };
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            window.appState.db = getFirestore(app);
+            updateStatusBadge(true, "Firebase Cloud Active");
+            initRealtimeListeners();
+        } catch (err) {
+            console.error("Firebase Error:", err);
+            updateStatusBadge(false, "Koneksi Firebase Gagal!");
+        }
+
+        function updateStatusBadge(online, text) {
+            const badge = document.getElementById("syncStatusBadge");
+            if (online) {
+                badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-900/80 text-emerald-200 border border-emerald-700";
+                badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span><span>${text}</span>`;
+            } else {
+                badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-900/80 text-rose-200 border border-rose-700";
+                badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span><span>${text}</span>`;
+            }
+        }
+
+        function initRealtimeListeners() {
+            const db = window.appState.db;
+
+            onSnapshot(collection(db, "sp_services"), (snapshot) => {
+                window.appState.services = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.renderAll();
+            });
+
+            onSnapshot(collection(db, "sp_sparepart"), (snapshot) => {
+                window.appState.sparepartList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.renderMasterSparepart();
+                window.refreshSparepartDropdowns();
+            });
+
+            onSnapshot(collection(db, "sp_teknisi"), (snapshot) => {
+                if (!snapshot.empty) {
+                    window.appState.teknisiDocs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const arr = window.appState.teknisiDocs.map(d => d.nama);
+                    if(arr.length > 0) window.appState.teknisiList = arr;
+                }
+                window.renderTeknisiPresets();
+                window.refreshFormDropdowns();
+            });
+
+            onSnapshot(collection(db, "sp_layanan"), (snapshot) => {
+                if (!snapshot.empty) {
+                    window.appState.layananDocs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const arr = window.appState.layananDocs.map(d => d.nama);
+                    if(arr.length > 0) window.appState.layananList = arr;
+                }
+                window.renderLayananPresets();
+                window.refreshFormDropdowns();
+            });
+        }
+
+        // Firebase Operations
+        window.dbSimpanService = async function(data) {
+            await addDoc(collection(window.appState.db, "sp_services"), data);
+            
+            // Kurangi Stok Sparepart
+            if(data.sparepartsUsed && data.sparepartsUsed.length > 0) {
+                for(const sp of data.sparepartsUsed) {
+                    const target = window.appState.sparepartList.find(s => s.id === sp.sparepartId);
+                    if(target) {
+                        const newStok = Math.max(0, (target.stok || 0) - sp.qty);
+                        await updateDoc(doc(window.appState.db, "sp_sparepart", target.id), { stok: newStok });
+                    }
+                }
+            }
+        };
+
+        window.dbTambahSparepart = async function(spData) {
+            await addDoc(collection(window.appState.db, "sp_sparepart"), spData);
+        };
+
+        window.dbHapusSparepart = async function(id) {
+            if(confirm("Hapus sparepart ini dari Master Data?")) {
+                await deleteDoc(doc(window.appState.db, "sp_sparepart", id));
+            }
+        };
+
+        window.dbUpdateStatusService = async function(id, newStatus) {
+            await updateDoc(doc(window.appState.db, "sp_services", id), { status: newStatus });
+        };
+
+        window.dbUpdateFotoSesudah = async function(id, fotoData) {
+            await updateDoc(doc(window.appState.db, "sp_services", id), { fotoSesudah: fotoData });
+        };
+
+        window.dbHapusService = async function(id) {
+            if(confirm("Yakin ingin menghapus data perbaikan unit ini?")) {
+                await deleteDoc(doc(window.appState.db, "sp_services", id));
+            }
+        };
+
+        window.dbTambahTeknisi = async function(nama) {
+            if(!window.appState.teknisiList.includes(nama)) {
+                await addDoc(collection(window.appState.db, "sp_teknisi"), { nama: nama });
+            }
+        };
+
+        window.dbHapusTeknisi = async function(nama) {
+            const target = window.appState.teknisiDocs.find(d => d.nama === nama);
+            if(target) await deleteDoc(doc(window.appState.db, "sp_teknisi", target.id));
+        };
+
+        window.dbTambahLayanan = async function(nama) {
+            if(!window.appState.layananList.includes(nama)) {
+                await addDoc(collection(window.appState.db, "sp_layanan"), { nama: nama });
+            }
+        };
+
+        window.dbHapusLayanan = async function(nama) {
+            const target = window.appState.layananDocs.find(d => d.nama === nama);
+            if(target) await deleteDoc(doc(window.appState.db, "sp_layanan", target.id));
+        };
+
+        window.dbRestoreBulkData = async function(backupObj) {
+            if (!backupObj) return;
+            const db = window.appState.db;
+            const { services = [], sparepartList = [] } = backupObj;
+
+            for (const s of services) {
+                const { id, ...sData } = s;
+                if(id) await setDoc(doc(db, "sp_services", id), sData);
+                else await addDoc(collection(db, "sp_services"), sData);
+            }
+
+            for (const sp of sparepartList) {
+                const { id, ...spData } = sp;
+                if(id) await setDoc(doc(db, "sp_sparepart", id), spData);
+                else await addDoc(collection(db, "sp_sparepart"), spData);
+            }
+
+            alert("Berhasil memulihkan & mengunggah seluruh data ke Firebase Cloud!");
+        };
+    </script>
+
+    <!-- UI Controller Script -->
+    <script>
+        let chartTrenInstance = null;
+        let chartStatusInstance = null;
+        let orderSparepartRowCount = 0;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            refreshFormDropdowns();
+            renderPreChecklistForm();
+            tambahBarisSparepartOrder(); // Tambah 1 baris default
+
+            // Close all custom dropdowns on outside click
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.spSearchableContainer')) {
+                    document.querySelectorAll('.spDropdownOptions').forEach(el => el.classList.add('hidden'));
+                }
+            });
+        });
+
+        function switchView(target) {
+            const adminView = document.getElementById('viewAdmin');
+            const trackView = document.getElementById('viewTracking');
+            const adminBtn = document.getElementById('tabAdminBtn');
+            const trackBtn = document.getElementById('tabTrackingBtn');
+
+            if(target === 'admin') {
+                adminView.classList.remove('hidden');
+                trackView.classList.add('hidden');
+                adminBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-brand-600 text-white shadow-sm";
+                trackBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-brand-200 hover:text-white";
+            } else {
+                adminView.classList.add('hidden');
+                trackView.classList.remove('hidden');
+                trackBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-brand-600 text-white shadow-sm";
+                adminBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-brand-200 hover:text-white";
+            }
+        }
+
+        // SPAREPART ORDER DYNAMIC ROWS WITH SEARCHABLE COMBOBOX
+        function tambahBarisSparepartOrder() {
+            orderSparepartRowCount++;
+            const container = document.getElementById('sparepartOrderContainer');
+            const rowId = `spRow_${orderSparepartRowCount}`;
+
+            const div = document.createElement('div');
+            div.id = rowId;
+            div.className = "grid grid-cols-12 gap-2 items-center bg-white p-2 rounded-xl border border-slate-200 relative";
+
+            div.innerHTML = `
+                <div class="col-span-6 sm:col-span-5 relative spSearchableContainer">
+                    <input type="hidden" class="spSelectedId" value="">
+                    <input type="hidden" class="spSelectedJual" value="0">
+                    <input type="hidden" class="spSelectedBeli" value="0">
+                    <input type="hidden" class="spSelectedNama" value="">
+                    <div class="relative">
+                        <input type="text" 
+                               placeholder="🔍 Ketik cari sparepart..." 
+                               onfocus="toggleSpDropdown('${rowId}', true)" 
+                               oninput="filterSpDropdown('${rowId}')" 
+                               class="spSearchInput w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50 font-medium pr-6">
+                        <i class="fa-solid fa-chevron-down absolute right-2.5 top-2.5 text-slate-400 text-[10px] pointer-events-none"></i>
+                    </div>
+                    <!-- Custom Dropdown Menu -->
+                    <div class="spDropdownOptions hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto text-xs divide-y divide-slate-100">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                <div class="col-span-2">
+                    <input type="number" value="1" min="1" oninput="hitungTotalOrderService()" placeholder="Qty" class="spQty w-full text-xs p-2 border border-slate-300 rounded-lg text-center font-bold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div class="col-span-3 sm:col-span-4 text-right">
+                    <span class="spSubtotalDisplay text-xs font-bold text-slate-800">Rp 0</span>
+                </div>
+                <div class="col-span-1 text-center">
+                    <button type="button" onclick="hapusBarisSparepartOrder('${rowId}')" class="text-slate-400 hover:text-rose-600 font-bold text-sm">×</button>
+                </div>
+            `;
+
+            container.appendChild(div);
+            populateSpDropdownOptions(rowId);
+        }
+
+        function populateSpDropdownOptions(rowId, filterQuery = "") {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+
+            const dropdown = row.querySelector('.spDropdownOptions');
+            const list = window.appState.sparepartList || [];
+            const query = filterQuery.toLowerCase().trim();
+
+            const filtered = list.filter(sp => (sp.nama || '').toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = `<div class="p-2.5 text-slate-400 text-center italic text-[11px]">Sparepart tidak ditemukan</div>`;
+                return;
+            }
+
+            dropdown.innerHTML = filtered.map(sp => `
+                <div onclick="pilihSparepartRow('${rowId}', '${sp.id}', '${sp.nama.replace(/'/g, "\\'")}', ${sp.hargaJual || 0}, ${sp.hargaBeli || 0})" 
+                     class="p-2 hover:bg-brand-50 cursor-pointer flex justify-between items-center transition">
+                    <div>
+                        <span class="font-bold text-slate-800 block">${sp.nama}</span>
+                        <span class="text-[10px] ${sp.stok < 3 ? 'text-rose-500 font-bold' : 'text-slate-400'}">Stok: ${sp.stok} pcs</span>
+                    </div>
+                    <span class="font-extrabold text-emerald-600 ml-2">${formatRupiah(sp.hargaJual)}</span>
+                </div>
+            `).join('');
+        }
+
+        function toggleSpDropdown(rowId, show) {
+            // Close other dropdowns
+            document.querySelectorAll('.spDropdownOptions').forEach(el => el.classList.add('hidden'));
+
+            const row = document.getElementById(rowId);
+            if (!row) return;
+
+            const dropdown = row.querySelector('.spDropdownOptions');
+            if (show) {
+                populateSpDropdownOptions(rowId, row.querySelector('.spSearchInput').value);
+                dropdown.classList.remove('hidden');
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        }
+
+        function filterSpDropdown(rowId) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+
+            const searchInput = row.querySelector('.spSearchInput');
+            const dropdown = row.querySelector('.spDropdownOptions');
+
+            // Reset selection jika user mengubah query pencarian secara manual
+            row.querySelector('.spSelectedId').value = "";
+            row.querySelector('.spSelectedJual').value = "0";
+            row.querySelector('.spSelectedBeli').value = "0";
+            row.querySelector('.spSelectedNama').value = "";
+
+            dropdown.classList.remove('hidden');
+            populateSpDropdownOptions(rowId, searchInput.value);
+            hitungTotalOrderService();
+        }
+
+        function pilihSparepartRow(rowId, id, nama, hargaJual, hargaBeli) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+
+            row.querySelector('.spSelectedId').value = id;
+            row.querySelector('.spSelectedJual').value = hargaJual;
+            row.querySelector('.spSelectedBeli').value = hargaBeli;
+            row.querySelector('.spSelectedNama').value = nama;
+            row.querySelector('.spSearchInput').value = nama;
+
+            row.querySelector('.spDropdownOptions').classList.add('hidden');
+            hitungTotalOrderService();
+        }
+
+        function hapusBarisSparepartOrder(rowId) {
+            const el = document.getElementById(rowId);
+            if(el) el.remove();
+            hitungTotalOrderService();
+        }
+
+        function refreshSparepartDropdowns() {
+            const container = document.getElementById('sparepartOrderContainer');
+            if(!container) return;
+            const rows = container.querySelectorAll('[id^="spRow_"]');
+            rows.forEach(row => {
+                const searchInput = row.querySelector('.spSearchInput');
+                populateSpDropdownOptions(row.id, searchInput ? searchInput.value : "");
+            });
+        }
+        window.refreshSparepartDropdowns = refreshSparepartDropdowns;
+
+        function hitungTotalOrderService() {
+            let totalSparepartJual = 0;
+            let totalSparepartModal = 0;
+
+            const container = document.getElementById('sparepartOrderContainer');
+            const rows = container.querySelectorAll('[id^="spRow_"]');
+
+            rows.forEach(row => {
+                const spId = row.querySelector('.spSelectedId').value;
+                const hargaJual = parseFloat(row.querySelector('.spSelectedJual').value) || 0;
+                const hargaBeli = parseFloat(row.querySelector('.spSelectedBeli').value) || 0;
+                const qtyInput = row.querySelector('.spQty');
+                const subtotalDisplay = row.querySelector('.spSubtotalDisplay');
+
+                if (spId) {
+                    const qty = parseInt(qtyInput.value) || 1;
+                    const subtotalJual = hargaJual * qty;
+                    const subtotalModal = hargaBeli * qty;
+
+                    totalSparepartJual += subtotalJual;
+                    totalSparepartModal += subtotalModal;
+
+                    if(subtotalDisplay) subtotalDisplay.textContent = formatRupiah(subtotalJual);
+                } else {
+                    if(subtotalDisplay) subtotalDisplay.textContent = "Rp 0";
+                }
+            });
+
+            const biayaJasa = parseFloat(document.getElementById('biayaJasaInput').value) || 0;
+            const grandTotal = totalSparepartJual + biayaJasa;
+            
+            // Keuntungan Bersih = Biaya Jasa + (Harga Jual Sparepart - Harga Beli Sparepart)
+            const labaSparepart = totalSparepartJual - totalSparepartModal;
+            const totalLabaBersih = biayaJasa + labaSparepart;
+
+            document.getElementById('totalBiayaDisplay').value = formatRupiah(grandTotal);
+            document.getElementById('estLabaOrderDisplay').textContent = `Est. Laba Bersih: ${formatRupiah(totalLabaBersih)} (Jasa: ${formatRupiah(biayaJasa)} + Sparepart: ${formatRupiah(labaSparepart)})`;
+
+            return { grandTotal, biayaJasa, labaSparepart, totalLabaBersih, totalSparepartJual, totalSparepartModal };
+        }
+
+        // MASTER SPAREPART SEARCH & PAGINATION HANDLERS
+        function onSparepartSearchChange() {
+            window.appState.sparepartPage = 1;
+            renderMasterSparepart();
+        }
+
+        function changeSparepartPage(delta) {
+            window.appState.sparepartPage += delta;
+            renderMasterSparepart();
+        }
+
+        async function tambahMasterSparepart() {
+            const nama = document.getElementById('spNama').value.trim();
+            const stok = parseInt(document.getElementById('spStok').value) || 0;
+            const hargaBeli = parseFloat(document.getElementById('spHargaBeli').value) || 0;
+            const hargaJual = parseFloat(document.getElementById('spHargaJual').value) || 0;
+
+            if(!nama) {
+                alert("Masukkan nama sparepart!");
+                return;
+            }
+
+            await window.dbTambahSparepart({ nama, stok, hargaBeli, hargaJual });
+
+            document.getElementById('spNama').value = '';
+            document.getElementById('spStok').value = '';
+            document.getElementById('spHargaBeli').value = '';
+            document.getElementById('spHargaJual').value = '';
+        }
+
+        window.renderMasterSparepart = function() {
+            const tbody = document.getElementById('tabelMasterSparepartBody');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+
+            const rawList = window.appState.sparepartList || [];
+            const searchKeyword = (document.getElementById('spSearchInput')?.value || '').toLowerCase();
+
+            // Filter Search
+            const filteredList = rawList.filter(sp => (sp.nama || '').toLowerCase().includes(searchKeyword));
+
+            // Pagination calculation
+            const pageSize = window.appState.pageSize || 10;
+            const totalPages = Math.ceil(filteredList.length / pageSize) || 1;
+            
+            if (window.appState.sparepartPage > totalPages) window.appState.sparepartPage = totalPages;
+            if (window.appState.sparepartPage < 1) window.appState.sparepartPage = 1;
+
+            const startIndex = (window.appState.sparepartPage - 1) * pageSize;
+            const paginatedList = filteredList.slice(startIndex, startIndex + pageSize);
+
+            // Update UI Pagination Info
+            document.getElementById('spPaginationInfo').textContent = `Menampilkan ${filteredList.length === 0 ? 0 : startIndex + 1} - ${Math.min(startIndex + pageSize, filteredList.length)} dari ${filteredList.length} sparepart`;
+            document.getElementById('spPageIndicator').textContent = `Hal ${window.appState.sparepartPage} dari ${totalPages}`;
+            document.getElementById('btnPrevSpPage').disabled = window.appState.sparepartPage <= 1;
+            document.getElementById('btnNextSpPage').disabled = window.appState.sparepartPage >= totalPages;
+
+            if(paginatedList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada data sparepart yang sesuai.</td></tr>`;
+                return;
+            }
+
+            paginatedList.forEach(sp => {
+                const margin = (sp.hargaJual || 0) - (sp.hargaBeli || 0);
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-800">${sp.nama}</td>
+                    <td class="p-3"><span class="px-2.5 py-1 bg-slate-100 border rounded-full font-bold text-xs ${sp.stok < 3 ? 'text-rose-600 bg-rose-50 border-rose-200' : 'text-slate-700'}">${sp.stok} pcs</span></td>
+                    <td class="p-3 font-semibold text-slate-500">${formatRupiah(sp.hargaBeli)}</td>
+                    <td class="p-3 font-extrabold text-emerald-600">${formatRupiah(sp.hargaJual)}</td>
+                    <td class="p-3 font-bold text-emerald-700 bg-emerald-50/30">+${formatRupiah(margin)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="window.dbHapusSparepart('${sp.id}')" class="text-slate-400 hover:text-rose-600 transition p-1"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        // Image Handling
+        function previewFotoSebelum(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    window.appState.tempFotoSebelum = e.target.result;
+                    document.getElementById('previewSebelumImg').src = e.target.result;
+                    document.getElementById('previewSebelumContainer').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function hapusFotoSebelum() {
+            window.appState.tempFotoSebelum = null;
+            document.getElementById('fotoSebelumInput').value = '';
+            document.getElementById('previewSebelumContainer').classList.add('hidden');
+        }
+
+        function previewFotoSesudah(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    window.appState.tempFotoSesudah = e.target.result;
+                    document.getElementById('previewSesudahImg').src = e.target.result;
+                    document.getElementById('previewSesudahContainer').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function hapusFotoSesudah() {
+            window.appState.tempFotoSesudah = null;
+            document.getElementById('fotoSesudahInput').value = '';
+            document.getElementById('previewSesudahContainer').classList.add('hidden');
+        }
+
+        // DIRECT WEBCAM INTEGRATION
+        async function bukaModalKameraDirect(target) {
+            window.appState.activeCameraTarget = target;
+            const modal = document.getElementById('modalWebcamDirect');
+            const video = document.getElementById('webcamVideoFeed');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' }, 
+                    audio: false 
+                });
+                window.appState.cameraStream = stream;
+                video.srcObject = stream;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } catch (err) {
+                alert("Gagal mengakses kamera: " + err.message + "\nPastikan Anda telah memberikan izin akses kamera.");
+            }
+        }
+
+        function tutupModalKameraDirect() {
+            const modal = document.getElementById('modalWebcamDirect');
+            const video = document.getElementById('webcamVideoFeed');
+
+            if (window.appState.cameraStream) {
+                window.appState.cameraStream.getTracks().forEach(track => track.stop());
+                window.appState.cameraStream = null;
+            }
+            video.srcObject = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function jepretKameraWebcam() {
+            const video = document.getElementById('webcamVideoFeed');
+            const canvas = document.getElementById('webcamCanvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageDataBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+            if (window.appState.activeCameraTarget === 'sebelum') {
+                window.appState.tempFotoSebelum = imageDataBase64;
+                document.getElementById('previewSebelumImg').src = imageDataBase64;
+                document.getElementById('previewSebelumContainer').classList.remove('hidden');
+            } else if (window.appState.activeCameraTarget === 'sesudah') {
+                window.appState.tempFotoSesudah = imageDataBase64;
+                document.getElementById('previewSesudahImg').src = imageDataBase64;
+                document.getElementById('previewSesudahContainer').classList.remove('hidden');
+            }
+
+            tutupModalKameraDirect();
+        }
+
+        function openUploadAfterModal(serviceId) {
+            window.appState.targetServiceIdAfter = serviceId;
+            window.appState.tempFotoSesudah = null;
+            document.getElementById('fotoSesudahInput').value = '';
+            document.getElementById('previewSesudahContainer').classList.add('hidden');
+            document.getElementById('modalUploadAfter').classList.remove('hidden');
+            document.getElementById('modalUploadAfter').classList.add('flex');
+        }
+
+        function closeUploadAfterModal() {
+            document.getElementById('modalUploadAfter').classList.add('hidden');
+            document.getElementById('modalUploadAfter').classList.remove('flex');
+        }
+
+        async function simpanFotoSesudah() {
+            if(!window.appState.tempFotoSesudah) {
+                alert("Silakan pilih foto terlebih dahulu!");
+                return;
+            }
+            if(window.appState.targetServiceIdAfter) {
+                await window.dbUpdateFotoSesudah(window.appState.targetServiceIdAfter, window.appState.tempFotoSesudah);
+                closeUploadAfterModal();
+            }
+        }
+
+        function renderPreChecklistForm() {
+            const container = document.getElementById('preChecklistContainer');
+            if(!container) return;
+            container.innerHTML = '';
+
+            window.appState.checklistItems.forEach((item, index) => {
+                const key = `check_${index}`;
+                const div = document.createElement('div');
+                div.className = "bg-white p-2 rounded-xl border border-slate-200 flex flex-col gap-1";
+                div.innerHTML = `
+                    <span class="font-bold text-[11px] text-slate-700 truncate" title="${item}">${item}</span>
+                    <select id="${key}" class="w-full text-[10px] font-semibold p-1 border border-slate-300 rounded-lg focus:outline-none bg-slate-50">
+                        <option value="OK">🟢 Normal (OK)</option>
+                        <option value="Rusak">🔴 Rusak / Defect</option>
+                        <option value="N/A">⚪ Tidak Dicek</option>
+                    </select>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function refreshFormDropdowns() {
+            const selTeknisi = document.getElementById('selectTeknisi');
+            const selLayanan = document.getElementById('selectJenisLayanan');
+
+            if(selTeknisi) {
+                selTeknisi.innerHTML = window.appState.teknisiList.map(t => `<option value="${t}">${t}</option>`).join('');
+            }
+            if(selLayanan) {
+                selLayanan.innerHTML = window.appState.layananList.map(l => `<option value="${l}">${l}</option>`).join('');
+            }
+        }
+        window.refreshFormDropdowns = refreshFormDropdowns;
+
+        async function simpanServiceBaru(e) {
+            e.preventDefault();
+            const today = new Date();
+            const dateCode = today.getFullYear().toString().substr(-2) + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
+            const randomNum = Math.floor(1000 + Math.random() * 9000);
+            
+            const notaNo = `PRO-${dateCode}-${randomNum}`;
+            const pelanggan = document.getElementById('namaPelanggan').value.trim();
+            const telp = document.getElementById('telpPelanggan').value.trim();
+            const unit = document.getElementById('namaUnit').value.trim();
+            const jenisLayanan = document.getElementById('selectJenisLayanan').value;
+            const teknisi = document.getElementById('selectTeknisi').value;
+            const keluhan = document.getElementById('keluhanUnit').value.trim();
+
+            // Kumpulkan Data Sparepart
+            const sparepartsUsed = [];
+            const container = document.getElementById('sparepartOrderContainer');
+            const rows = container.querySelectorAll('[id^="spRow_"]');
+
+            rows.forEach(row => {
+                const sparepartId = row.querySelector('.spSelectedId').value;
+                const namaSparepart = row.querySelector('.spSelectedNama').value;
+                const hargaJual = parseFloat(row.querySelector('.spSelectedJual').value) || 0;
+                const hargaBeli = parseFloat(row.querySelector('.spSelectedBeli').value) || 0;
+                const qtyInput = row.querySelector('.spQty');
+
+                if (sparepartId) {
+                    const qty = parseInt(qtyInput.value) || 1;
+                    sparepartsUsed.push({
+                        sparepartId,
+                        nama: namaSparepart,
+                        hargaJual,
+                        hargaBeli,
+                        qty,
+                        subtotalJual: hargaJual * qty,
+                        subtotalBeli: hargaBeli * qty
+                    });
+                }
+            });
+
+            const { grandTotal, biayaJasa, labaSparepart, totalLabaBersih } = hitungTotalOrderService();
+
+            const inspectionResults = {};
+            window.appState.checklistItems.forEach((item, index) => {
+                const sel = document.getElementById(`check_${index}`);
+                if(sel) inspectionResults[item] = sel.value;
+            });
+
+            const newService = {
+                notaNo,
+                tanggal: today.toISOString().split('T')[0],
+                pelanggan,
+                telp,
+                unit,
+                jenisLayanan,
+                teknisi,
+                keluhan,
+                biayaJasa,
+                biayaTotal: grandTotal,
+                labaSparepart,
+                totalLabaBersih,
+                sparepartsUsed,
+                inspectionResults,
+                fotoSebelum: window.appState.tempFotoSebelum || null,
+                fotoSesudah: null,
+                status: 'Menunggu'
+            };
+
+            await window.dbSimpanService(newService);
+            
+            document.getElementById('formService').reset();
+            window.appState.tempFotoSebelum = null;
+            document.getElementById('previewSebelumContainer').classList.add('hidden');
+            document.getElementById('sparepartOrderContainer').innerHTML = '';
+            tambahBarisSparepartOrder();
+            refreshFormDropdowns();
+            renderPreChecklistForm();
+
+            openNotaModalByObject(newService);
+        }
+
+        function tambahMasterTeknisi() {
+            const val = document.getElementById('inputTeknisiBaru').value.trim();
+            if(val) {
+                window.dbTambahTeknisi(val);
+                document.getElementById('inputTeknisiBaru').value = '';
+            }
+        }
+
+        function tambahMasterLayanan() {
+            const val = document.getElementById('inputLayananBaru').value.trim();
+            if(val) {
+                window.dbTambahLayanan(val);
+                document.getElementById('inputLayananBaru').value = '';
+            }
+        }
+
+        window.renderTeknisiPresets = function() {
+            const container = document.getElementById('listTeknisi');
+            if(!container) return;
+            container.innerHTML = '';
+            window.appState.teknisiList.forEach(t => {
+                const badge = document.createElement('div');
+                badge.className = "bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5";
+                badge.innerHTML = `<span>${t}</span><button onclick="window.dbHapusTeknisi('${t}')" class="text-amber-400 hover:text-rose-600 font-bold ml-1 text-xs">×</button>`;
+                container.appendChild(badge);
+            });
+        };
+
+        window.renderLayananPresets = function() {
+            const container = document.getElementById('listLayanan');
+            if(!container) return;
+            container.innerHTML = '';
+            window.appState.layananList.forEach(l => {
+                const badge = document.createElement('div');
+                badge.className = "bg-indigo-50 border border-indigo-200 text-indigo-900 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5";
+                badge.innerHTML = `<span>${l}</span><button onclick="window.dbHapusLayanan('${l}')" class="text-indigo-400 hover:text-rose-600 font-bold ml-1 text-xs">×</button>`;
+                container.appendChild(badge);
+            });
+        };
+
+        // WORK ORDER SEARCH & PAGINATION HANDLERS
+        function onServiceFilterChange() {
+            window.appState.servicePage = 1;
+            renderAll();
+        }
+
+        function changeServicePage(delta) {
+            window.appState.servicePage += delta;
+            renderAll();
+        }
+
+        window.renderAll = function() {
+            const services = window.appState.services || [];
+            const filterSts = document.getElementById('filterStatus').value;
+            const searchKeyword = (document.getElementById('searchInput').value || '').toLowerCase();
+
+            const filtered = services.filter(s => {
+                const matchStatus = filterSts === 'ALL' || s.status === filterSts;
+                const matchSearch = (s.notaNo || '').toLowerCase().includes(searchKeyword) ||
+                                    (s.pelanggan || '').toLowerCase().includes(searchKeyword) ||
+                                    (s.unit || '').toLowerCase().includes(searchKeyword);
+                return matchStatus && matchSearch;
+            });
+
+            const prosesCount = services.filter(s => s.status === 'Proses' || s.status === 'Menunggu').length;
+            const validServices = services.filter(s => s.status === 'Diserahkan' || s.status === 'Selesai');
+            
+            const omsetTotal = validServices.reduce((acc, curr) => acc + (curr.biayaTotal || curr.biaya || 0), 0);
+            const labaJasaTotal = validServices.reduce((acc, curr) => acc + (curr.biayaJasa || 0), 0);
+            const labaSparepartTotal = validServices.reduce((acc, curr) => acc + (curr.labaSparepart || 0), 0);
+            const totalProfitClean = labaJasaTotal + labaSparepartTotal;
+
+            document.getElementById('statProsesCount').textContent = `${prosesCount} Unit`;
+            document.getElementById('statOmsetTotal').textContent = formatRupiah(omsetTotal);
+            document.getElementById('statLunasCount').textContent = `${validServices.length} nota selesai/diserahkan`;
+            document.getElementById('statLabaJasaTotal').textContent = formatRupiah(labaJasaTotal);
+            document.getElementById('statLabaSparepartTotal').textContent = formatRupiah(labaSparepartTotal);
+            document.getElementById('statTotalProfit').textContent = formatRupiah(totalProfitClean);
+
+            renderTabelServices(filtered);
+            renderCharts(services);
+        };
+
+        function renderTabelServices(data) {
+            const tbody = document.getElementById('tabelServiceBody');
+            tbody.innerHTML = '';
+
+            const pageSize = window.appState.pageSize || 10;
+            const sortedData = data.sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+            const totalPages = Math.ceil(sortedData.length / pageSize) || 1;
+
+            if (window.appState.servicePage > totalPages) window.appState.servicePage = totalPages;
+            if (window.appState.servicePage < 1) window.appState.servicePage = 1;
+
+            const startIndex = (window.appState.servicePage - 1) * pageSize;
+            const paginatedData = sortedData.slice(startIndex, startIndex + pageSize);
+
+            // Update Pagination UI Work Order
+            document.getElementById('servicePaginationInfo').textContent = `Menampilkan ${sortedData.length === 0 ? 0 : startIndex + 1} - ${Math.min(startIndex + pageSize, sortedData.length)} dari ${sortedData.length} work order`;
+            document.getElementById('servicePageIndicator').textContent = `Hal ${window.appState.servicePage} dari ${totalPages}`;
+            document.getElementById('btnPrevServicePage').disabled = window.appState.servicePage <= 1;
+            document.getElementById('btnNextServicePage').disabled = window.appState.servicePage >= totalPages;
+
+            if(paginatedData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-400">Belum ada order service perbaikan yang sesuai.</td></tr>`;
+                return;
+            }
+
+            paginatedData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+
+                let badgeClass = "bg-amber-100 text-amber-800";
+                if(item.status === 'Proses') badgeClass = "bg-blue-100 text-blue-800";
+                if(item.status === 'Selesai') badgeClass = "bg-emerald-100 text-emerald-800";
+                if(item.status === 'Diserahkan') badgeClass = "bg-slate-200 text-slate-800";
+                if(item.status === 'Batal') badgeClass = "bg-rose-100 text-rose-800";
+
+                const totalBiaya = item.biayaTotal || item.biaya || 0;
+                const estProfit = (item.biayaJasa || 0) + (item.labaSparepart || 0);
+
+                const sparepartListHtml = (item.sparepartsUsed && item.sparepartsUsed.length > 0)
+                    ? item.sparepartsUsed.map(sp => `<span class="inline-block bg-slate-100 text-slate-700 border px-1.5 py-0.5 rounded text-[10px] mr-1 mb-1">${sp.nama} (${sp.qty}x)</span>`).join('')
+                    : `<span class="text-slate-400 italic text-[10px]">Tanpa penggantian sparepart</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-3">
+                        <span class="font-extrabold text-brand-900 block">${item.notaNo}</span>
+                        <span class="text-[10px] text-slate-400">${item.tanggal}</span>
+                    </td>
+                    <td class="p-3">
+                        <span class="font-bold text-slate-800 block">${item.pelanggan}</span>
+                        <span class="text-[10px] text-slate-500"><i class="fa-brands fa-whatsapp text-emerald-600"></i> ${item.telp}</span>
+                    </td>
+                    <td class="p-3">
+                        <span class="font-semibold text-slate-800 block">${item.unit}</span>
+                        <span class="text-[10px] text-slate-500 italic">${item.jenisLayanan} - ${item.keluhan}</span>
+                    </td>
+                    <td class="p-3">
+                        ${sparepartListHtml}
+                        <div class="text-[10px] text-slate-500">Jasa: <strong>${formatRupiah(item.biayaJasa)}</strong></div>
+                    </td>
+                    <td class="p-3 text-right font-extrabold text-slate-800">${formatRupiah(totalBiaya)}</td>
+                    <td class="p-3 text-right font-black text-emerald-600 bg-emerald-50/40">${formatRupiah(estProfit)}</td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="openInspectionModal('${item.id}')" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-2 py-1 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition">
+                                <i class="fa-solid fa-camera"></i> ${item.fotoSebelum ? 'Before ✓' : 'Before -'}
+                            </button>
+                            <button onclick="openUploadAfterModal('${item.id}')" title="Upload / Foto Selesai" class="${item.fotoSesudah ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-500 border-slate-300'} border px-1.5 py-1 rounded-lg text-[10px] font-bold">
+                                ${item.fotoSesudah ? 'After ✓' : '+ After'}
+                            </button>
+                        </div>
+                    </td>
+                    <td class="p-3 text-center">
+                        <select onchange="window.dbUpdateStatusService('${item.id}', this.value)" class="text-[10px] font-bold px-2 py-1 rounded-lg ${badgeClass} border-none focus:outline-none cursor-pointer">
+                            <option value="Menunggu" ${item.status==='Menunggu'?'selected':''}>Menunggu</option>
+                            <option value="Proses" ${item.status==='Proses'?'selected':''}>Dalam Proses</option>
+                            <option value="Selesai" ${item.status==='Selesai'?'selected':''}>Selesai</option>
+                            <option value="Diserahkan" ${item.status==='Diserahkan'?'selected':''}>Diserahkan</option>
+                            <option value="Batal" ${item.status==='Batal'?'selected':''}>Batal</option>
+                        </select>
+                    </td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="openNotaModalById('${item.id}')" title="Cetak Nota Service" class="bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 p-1.5 rounded-lg text-xs font-bold transition">
+                                <i class="fa-solid fa-receipt"></i> Nota
+                            </button>
+                            <button onclick="window.dbHapusService('${item.id}')" class="text-slate-400 hover:text-rose-600 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Inspection Modal Ops
+        function openInspectionModal(serviceId) {
+            const item = window.appState.services.find(s => s.id === serviceId);
+            if(!item) return;
+
+            document.getElementById('modalNota').textContent = item.notaNo;
+            document.getElementById('modalPelanggan').textContent = item.pelanggan;
+            document.getElementById('modalUnit').textContent = item.unit;
+
+            const boxSebelum = document.getElementById('modalFotoSebelumBox');
+            const boxSesudah = document.getElementById('modalFotoSesudahBox');
+
+            boxSebelum.innerHTML = item.fotoSebelum 
+                ? `<img src="${item.fotoSebelum}" class="h-full w-full object-cover rounded-lg cursor-pointer" onclick="window.open('${item.fotoSebelum}')">` 
+                : `<span class="text-slate-400 text-[10px]">Tanpa Foto</span>`;
+
+            boxSesudah.innerHTML = item.fotoSesudah 
+                ? `<img src="${item.fotoSesudah}" class="h-full w-full object-cover rounded-lg cursor-pointer" onclick="window.open('${item.fotoSesudah}')">` 
+                : `<span class="text-slate-400 text-[10px]">Belum Diupload</span>`;
+
+            const container = document.getElementById('modalChecklistList');
+            container.innerHTML = '';
+
+            const results = item.inspectionResults || {};
+            const keys = Object.keys(results);
+
+            if(keys.length === 0) {
+                container.innerHTML = `<p class="col-span-2 text-slate-400 italic">Tidak ada catatan inspeksi awal.</p>`;
+            } else {
+                keys.forEach(k => {
+                    const status = results[k];
+                    let badge = `<span class="text-emerald-600 font-bold">🟢 Normal</span>`;
+                    if(status === 'Rusak') badge = `<span class="text-rose-600 font-bold">🔴 Rusak</span>`;
+                    if(status === 'N/A') badge = `<span class="text-slate-400 font-medium">⚪ Tidak Dicek</span>`;
+
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200";
+                    div.innerHTML = `<span class="font-semibold text-slate-700">${k}:</span> ${badge}`;
+                    container.appendChild(div);
+                });
+            }
+
+            document.getElementById('modalInspection').classList.remove('hidden');
+            document.getElementById('modalInspection').classList.add('flex');
+        }
+
+        function closeInspectionModal() {
+            document.getElementById('modalInspection').classList.add('hidden');
+            document.getElementById('modalInspection').classList.remove('flex');
+        }
+
+        // Printable Nota Service Modal
+        function openNotaModalById(id) {
+            const item = window.appState.services.find(s => s.id === id);
+            if(item) openNotaModalByObject(item);
+        }
+
+        function openNotaModalByObject(item) {
+            window.appState.currentActiveNotaItem = item;
+
+            document.getElementById('notaNoDisplay').textContent = item.notaNo;
+            document.getElementById('notaTglDisplay').textContent = `Tgl: ${item.tanggal}`;
+            document.getElementById('notaPelangganDisplay').textContent = item.pelanggan;
+            document.getElementById('notaTelpDisplay').textContent = item.telp;
+            document.getElementById('notaTeknisiDisplay').textContent = item.teknisi;
+            document.getElementById('notaLayananDisplay').textContent = item.jenisLayanan;
+            document.getElementById('notaUnitDisplay').textContent = item.unit;
+            document.getElementById('notaKeluhanDisplay').textContent = item.keluhan;
+
+            const totalBiaya = item.biayaTotal || item.biaya || 0;
+            document.getElementById('notaBiayaDisplay').textContent = formatRupiah(totalBiaya);
+
+            // Populate Table Rincian Nota
+            const rincianBody = document.getElementById('notaRincianBody');
+            rincianBody.innerHTML = '';
+
+            // 1. Jasa Row
+            const trJasa = document.createElement('tr');
+            trJasa.className = "border-b border-slate-100";
+            trJasa.innerHTML = `
+                <td class="py-1">Biaya Jasa / Service (${item.jenisLayanan})</td>
+                <td class="py-1 text-center">1</td>
+                <td class="py-1 text-right">${formatRupiah(item.biayaJasa || totalBiaya)}</td>
+                <td class="py-1 text-right font-bold">${formatRupiah(item.biayaJasa || totalBiaya)}</td>
+            `;
+            rincianBody.appendChild(trJasa);
+
+            // 2. Spareparts Rows
+            if(item.sparepartsUsed && item.sparepartsUsed.length > 0) {
+                item.sparepartsUsed.forEach(sp => {
+                    const trSp = document.createElement('tr');
+                    trSp.className = "border-b border-slate-100";
+                    trSp.innerHTML = `
+                        <td class="py-1">${sp.nama}</td>
+                        <td class="py-1 text-center">${sp.qty}</td>
+                        <td class="py-1 text-right">${formatRupiah(sp.hargaJual)}</td>
+                        <td class="py-1 text-right font-bold">${formatRupiah(sp.subtotalJual)}</td>
+                    `;
+                    rincianBody.appendChild(trSp);
+                });
+            }
+
+            document.getElementById('modalNotaService').classList.remove('hidden');
+            document.getElementById('modalNotaService').classList.add('flex');
+        }
+
+        function closeNotaModal() {
+            document.getElementById('modalNotaService').classList.add('hidden');
+            document.getElementById('modalNotaService').classList.remove('flex');
+        }
+
+        function salinTeksNotaWA() {
+            const item = window.appState.currentActiveNotaItem;
+            if(!item) return;
+
+            const totalBiaya = item.biayaTotal || item.biaya || 0;
+            const txt = `*NOTA ZR-Service - TANDA TERIMA* 🛠\n` +
+                        `No. Nota: *${item.notaNo}*\n` +
+                        `Tanggal: ${item.tanggal}\n` +
+                        `Pelanggan: ${item.pelanggan}\n` +
+                        `Perangkat: *${item.unit}*\n` +
+                        `Layanan: ${item.jenisLayanan}\n` +
+                        `Keluhan: _${item.keluhan}_\n` +
+                        `Total Biaya: *${formatRupiah(totalBiaya)}*\n` +
+                        `Status Service: *${item.status}*\n\n` +
+                        `Lacak status pengerjaan & foto kondisi perangkat Anda di portal resmi kami. Terima kasih!`;
+
+            navigator.clipboard.writeText(txt).then(() => {
+                alert("Teks Nota Service berhasil disalin!");
+            });
+        }
+
+        // Monitoring / Tracking Status Pelanggan
+        function lacakStatusPelanggan() {
+            const query = (document.getElementById('trackQueryInput').value || '').trim().toLowerCase();
+            const resultArea = document.getElementById('trackingResultArea');
+
+            if(!query) {
+                alert("Masukkan Nomor Nota atau WhatsApp terlebih dahulu!");
+                return;
+            }
+
+            const services = window.appState.services || [];
+            const found = services.filter(s => 
+                (s.notaNo || '').toLowerCase().includes(query) ||
+                (s.telp || '').toLowerCase().includes(query)
+            );
+
+            resultArea.classList.remove('hidden');
+            resultArea.innerHTML = '';
+
+            if(found.length === 0) {
+                resultArea.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 space-y-2">
+                        <i class="fa-solid fa-circle-exclamation text-3xl text-rose-500"></i>
+                        <p class="font-bold text-slate-700">Data Service Tidak Ditemukan</p>
+                        <p class="text-xs">Pastikan Nomor Nota (${query}) atau Nomor Telp yang Anda masukkan sudah benar.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            found.forEach(item => {
+                let statusBadge = `<span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-extrabold text-xs">Menunggu Antrean</span>`;
+                let statusDesc = "Perangkat Anda telah diterima dan sedang menunggu urutan pengerjaan oleh teknisi.";
+
+                if(item.status === 'Proses') {
+                    statusBadge = `<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-extrabold text-xs">Dalam Perbaikan</span>`;
+                    statusDesc = "Teknisi sedang melakukan perbaikan dan penggantian komponen perangkat Anda.";
+                } else if(item.status === 'Selesai') {
+                    statusBadge = `<span class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-extrabold text-xs">Selesai & Siap Diambil</span>`;
+                    statusDesc = "Perbaikan telah selesai dan telah lulus pengujian. Silakan ambil unit di toko kami.";
+                } else if(item.status === 'Diserahkan') {
+                    statusBadge = `<span class="bg-slate-200 text-slate-800 px-3 py-1 rounded-full font-extrabold text-xs">Telah Diserahkan</span>`;
+                    statusDesc = "Perangkat telah diambil oleh pelanggan.";
+                } else if(item.status === 'Batal') {
+                    statusBadge = `<span class="bg-rose-100 text-rose-800 px-3 py-1 rounded-full font-extrabold text-xs">Dibatalkan</span>`;
+                    statusDesc = "Perbaikan dibatalkan sesuai kesepakatan.";
+                }
+
+                const totalBiaya = item.biayaTotal || item.biaya || 0;
+
+                // Dynamic Sparepart Breakdown
+                let sparepartRows = '';
+                if(item.sparepartsUsed && item.sparepartsUsed.length > 0) {
+                    sparepartRows = item.sparepartsUsed.map(sp => `
+                        <div class="flex justify-between items-center text-xs py-1 border-b border-slate-100">
+                            <span>${sp.nama} (${sp.qty}x)</span>
+                            <span class="font-bold text-slate-800">${formatRupiah(sp.subtotalJual)}</span>
+                        </div>
+                    `).join('');
+                }
+
+                // Photo Comparison HTML
+                let photoSection = '';
+                if(item.fotoSebelum || item.fotoSesudah) {
+                    photoSection = `
+                        <div class="pt-3 border-t border-slate-200">
+                            <span class="text-xs font-bold text-slate-700 block mb-2"><i class="fa-solid fa-images text-brand-600"></i> Dokumentasi Foto Perangkat:</span>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-slate-100 p-2 rounded-xl text-center border">
+                                    <span class="text-[10px] font-bold text-slate-500 block mb-1">Sebelum Perbaikan (Before)</span>
+                                    ${item.fotoSebelum ? `<img src="${item.fotoSebelum}" class="h-32 w-full object-cover rounded-lg shadow-sm">` : `<span class="text-slate-400 text-[10px] block py-8">Tidak ada foto</span>`}
+                                </div>
+                                <div class="bg-slate-100 p-2 rounded-xl text-center border">
+                                    <span class="text-[10px] font-bold text-slate-500 block mb-1">Hasil Perbaikan (After)</span>
+                                    ${item.fotoSesudah ? `<img src="${item.fotoSesudah}" class="h-32 w-full object-cover rounded-lg shadow-sm">` : `<span class="text-slate-400 text-[10px] block py-8">Belum diupload</span>`}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const card = document.createElement('div');
+                card.className = "space-y-4 border-b border-slate-100 pb-6 last:border-0 last:pb-0";
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div>
+                            <span class="text-xs text-slate-400">Nomor Tanda Terima</span>
+                            <h3 class="text-lg font-black text-brand-900">${item.notaNo}</h3>
+                        </div>
+                        <div>${statusBadge}</div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-slate-400 block">Pelanggan:</span>
+                                <span class="font-bold text-slate-800">${item.pelanggan}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block">Perangkat Unit:</span>
+                                <span class="font-bold text-slate-800">${item.unit}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-2 border-t border-slate-200">
+                            <span class="text-slate-400 block mb-1">Rincian Perbaikan & Sparepart:</span>
+                            <div class="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
+                                <div class="flex justify-between items-center text-xs py-1 border-b border-slate-100">
+                                    <span>Biaya Jasa (${item.jenisLayanan})</span>
+                                    <span class="font-bold text-slate-800">${formatRupiah(item.biayaJasa || totalBiaya)}</span>
+                                </div>
+                                ${sparepartRows}
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-200 flex justify-between items-center">
+                            <span class="text-slate-400 font-bold">Total Pembayaran:</span>
+                            <span class="font-extrabold text-brand-900 text-base">${formatRupiah(totalBiaya)}</span>
+                        </div>
+
+                        ${photoSection}
+                    </div>
+
+                    <div class="p-3 bg-brand-50 border border-brand-200 rounded-xl text-brand-900 text-xs flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-brand-600 mt-0.5"></i>
+                        <div>
+                            <span class="font-bold block">Status Pengerjaan:</span>
+                            <p>${statusDesc}</p>
+                        </div>
+                    </div>
+                `;
+                resultArea.appendChild(card);
+            });
+        }
+
+        function renderCharts(services) {
+            const bulanLabels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+            const omsetPerBulan = new Array(12).fill(0);
+            const profitPerBulan = new Array(12).fill(0);
+
+            services.forEach(s => {
+                if(s.tanggal) {
+                    const m = new Date(s.tanggal).getMonth();
+                    if(m >= 0 && m < 12) {
+                        if(s.status === 'Diserahkan' || s.status === 'Selesai') {
+                            const totalBiaya = s.biayaTotal || s.biaya || 0;
+                            const profit = (s.biayaJasa || 0) + (s.labaSparepart || 0);
+                            omsetPerBulan[m] += totalBiaya;
+                            profitPerBulan[m] += profit;
+                        }
+                    }
+                }
+            });
+
+            const ctxTren = document.getElementById('chartTrenService').getContext('2d');
+            if(chartTrenInstance) chartTrenInstance.destroy();
+            chartTrenInstance = new Chart(ctxTren, {
+                type: 'bar',
+                data: {
+                    labels: bulanLabels,
+                    datasets: [
+                        { label: 'Total Omset (Rp)', data: omsetPerBulan, backgroundColor: '#3b82f6', borderRadius: 6 },
+                        { label: 'Laba Bersih (Rp)', data: profitPerBulan, backgroundColor: '#10b981', borderRadius: 6 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            const ctxStatus = document.getElementById('chartStatusPie').getContext('2d');
+            if(chartStatusInstance) chartStatusInstance.destroy();
+
+            const statusCounts = {
+                'Menunggu': services.filter(s => s.status === 'Menunggu').length,
+                'Proses': services.filter(s => s.status === 'Proses').length,
+                'Selesai': services.filter(s => s.status === 'Selesai').length,
+                'Diserahkan': services.filter(s => s.status === 'Diserahkan').length,
+                'Batal': services.filter(s => s.status === 'Batal').length,
+            };
+
+            chartStatusInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#64748b', '#ef4444']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function exportBackupData() {
+            const dataToExport = {
+                appName: "ZR-Service Backup",
+                timestamp: new Date().toISOString(),
+                services: window.appState.services || [],
+                sparepartList: window.appState.sparepartList || [],
+                teknisiList: window.appState.teknisiList || [],
+                layananList: window.appState.layananList || []
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+            const downloadAnchor = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `ZR-Service_Backup_${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importBackupData(event) {
+            const fileReader = new FileReader();
+            const file = event.target.files[0];
+
+            if (!file) return;
+
+            fileReader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (parsedData && (parsedData.services || parsedData.sparepartList)) {
+                        if (confirm("Apakah Anda yakin ingin memulihkan database ZR-Service dari file ini?")) {
+                            if (typeof window.dbRestoreBulkData === 'function') {
+                                window.dbRestoreBulkData(parsedData);
+                            }
+                        }
+                    } else {
+                        alert("Format file JSON tidak valid!");
+                    }
+                } catch (err) {
+                    alert("Gagal membaca file backup JSON: " + err.message);
+                }
+            };
+
+            fileReader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function formatRupiah(num) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
+        }
+    </script>
+</body>
+</html>
