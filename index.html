@@ -269,8 +269,8 @@
                             <input type="number" id="spHargaJual" placeholder="Harga Jual (Rp)" class="border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
                         </div>
                         <div class="flex justify-end">
-                            <button onclick="tambahMasterSparepart()" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5">
-                                <i class="fa-solid fa-floppy-disk"></i> Simpan Sparepart
+                            <button id="btnSimpanSparepart" onclick="tambahMasterSparepart()" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-floppy-disk"></i> <span>Simpan Sparepart</span>
                             </button>
                         </div>
                     </div>
@@ -442,7 +442,9 @@
 
                             <div class="flex gap-2 mb-2">
                                 <input type="text" id="inputTeknisiBaru" placeholder="Nama teknisi baru..." class="flex-1 border border-slate-300 rounded-xl p-2 text-xs focus:outline-none bg-slate-50">
-                                <button onclick="tambahMasterTeknisi()" type="button" class="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl">Tambah</button>
+                                <button id="btnTambahTeknisi" onclick="tambahMasterTeknisi()" type="button" class="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1">
+                                    <span>Tambah</span>
+                                </button>
                             </div>
                             <div id="listTeknisi" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto"></div>
                         </div>
@@ -460,7 +462,9 @@
 
                             <div class="flex gap-2 mb-2">
                                 <input type="text" id="inputLayananBaru" placeholder="Jenis service..." class="flex-1 border border-slate-300 rounded-xl p-2 text-xs focus:outline-none bg-slate-50">
-                                <button onclick="tambahMasterLayanan()" type="button" class="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl">Tambah</button>
+                                <button id="btnTambahLayanan" onclick="tambahMasterLayanan()" type="button" class="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1">
+                                    <span>Tambah</span>
+                                </button>
                             </div>
                             <div id="listLayanan" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto"></div>
                         </div>
@@ -656,7 +660,9 @@
 
             <div class="flex justify-end gap-2 pt-2 border-t">
                 <button onclick="closeUploadAfterModal()" class="bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl">Batal</button>
-                <button onclick="simpanFotoSesudah()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md">Simpan Foto</button>
+                <button id="btnSimpanFotoSesudah" onclick="simpanFotoSesudah()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md flex items-center gap-1.5">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> <span>Simpan Foto</span>
+                </button>
             </div>
         </div>
     </div>
@@ -793,7 +799,7 @@
             });
         }
 
-        // Firebase Operations
+        // Firebase Operations dengan Loading State & Auto-Reload
         window.dbSimpanService = async function(data) {
             await addDoc(collection(window.appState.db, "sp_services"), data);
             
@@ -806,29 +812,82 @@
                     }
                 }
             }
+            window.renderAll();
+            window.renderMasterSparepart();
         };
 
         window.dbTambahSparepart = async function(spData) {
             await addDoc(collection(window.appState.db, "sp_sparepart"), spData);
+            window.renderMasterSparepart();
+            window.refreshSparepartDropdowns();
         };
 
-        window.dbHapusSparepart = async function(id) {
+        window.dbHapusSparepart = async function(id, btnElement) {
             if(confirm("Hapus sparepart ini dari Master Data?")) {
-                await deleteDoc(doc(window.appState.db, "sp_sparepart", id));
+                let originalHtml = "";
+                if(btnElement) {
+                    originalHtml = btnElement.innerHTML;
+                    btnElement.disabled = true;
+                    btnElement.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i>`;
+                }
+                try {
+                    await deleteDoc(doc(window.appState.db, "sp_sparepart", id));
+                    window.renderMasterSparepart();
+                    window.refreshSparepartDropdowns();
+                } catch(err) {
+                    alert("Gagal menghapus sparepart: " + err.message);
+                } finally {
+                    if(btnElement) {
+                        btnElement.disabled = false;
+                        btnElement.innerHTML = originalHtml;
+                    }
+                }
             }
         };
 
-        window.dbUpdateStatusService = async function(id, newStatus) {
-            await updateDoc(doc(window.appState.db, "sp_services", id), { status: newStatus });
+        window.dbUpdateStatusService = async function(id, newStatus, selectElement) {
+            let originalBg = selectElement ? selectElement.className : "";
+            if(selectElement) {
+                selectElement.disabled = true;
+                selectElement.classList.add('opacity-50');
+            }
+            try {
+                await updateDoc(doc(window.appState.db, "sp_services", id), { status: newStatus });
+                window.renderAll();
+            } catch(err) {
+                alert("Gagal mengubah status: " + err.message);
+            } finally {
+                if(selectElement) {
+                    selectElement.disabled = false;
+                    selectElement.classList.remove('opacity-50');
+                }
+            }
         };
 
         window.dbUpdateFotoSesudah = async function(id, fotoData) {
             await updateDoc(doc(window.appState.db, "sp_services", id), { fotoSesudah: fotoData });
+            window.renderAll();
         };
 
-        window.dbHapusService = async function(id) {
+        window.dbHapusService = async function(id, btnElement) {
             if(confirm("Yakin ingin menghapus data perbaikan unit ini?")) {
-                await deleteDoc(doc(window.appState.db, "sp_services", id));
+                let originalHtml = "";
+                if(btnElement) {
+                    originalHtml = btnElement.innerHTML;
+                    btnElement.disabled = true;
+                    btnElement.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i>`;
+                }
+                try {
+                    await deleteDoc(doc(window.appState.db, "sp_services", id));
+                    window.renderAll();
+                } catch(err) {
+                    alert("Gagal menghapus service: " + err.message);
+                } finally {
+                    if(btnElement) {
+                        btnElement.disabled = false;
+                        btnElement.innerHTML = originalHtml;
+                    }
+                }
             }
         };
 
@@ -872,6 +931,8 @@
             }
 
             alert("Berhasil memulihkan & mengunggah seluruh data ke Firebase Cloud!");
+            window.renderAll();
+            window.renderMasterSparepart();
         };
     </script>
 
@@ -1139,6 +1200,7 @@
         }
 
         async function tambahMasterSparepart() {
+            const btn = document.getElementById('btnSimpanSparepart');
             const nama = document.getElementById('spNama').value.trim();
             const stok = parseInt(document.getElementById('spStok').value) || 0;
             const hargaBeli = parseFloat(document.getElementById('spHargaBeli').value) || 0;
@@ -1149,12 +1211,22 @@
                 return;
             }
 
-            await window.dbTambahSparepart({ nama, stok, hargaBeli, hargaJual });
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Menyimpan...</span>`;
 
-            document.getElementById('spNama').value = '';
-            document.getElementById('spStok').value = '';
-            document.getElementById('spHargaBeli').value = '';
-            document.getElementById('spHargaJual').value = '';
+            try {
+                await window.dbTambahSparepart({ nama, stok, hargaBeli, hargaJual });
+
+                document.getElementById('spNama').value = '';
+                document.getElementById('spStok').value = '';
+                document.getElementById('spHargaBeli').value = '';
+                document.getElementById('spHargaJual').value = '';
+            } catch(err) {
+                alert("Gagal menambahkan sparepart: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Simpan Sparepart</span>`;
+            }
         }
 
         window.renderMasterSparepart = function() {
@@ -1197,7 +1269,7 @@
                     <td class="p-3 font-extrabold text-emerald-600">${formatRupiah(sp.hargaJual)}</td>
                     <td class="p-3 font-bold text-emerald-700 bg-emerald-50/30">+${formatRupiah(margin)}</td>
                     <td class="p-3 text-center">
-                        <button onclick="window.dbHapusSparepart('${sp.id}')" class="text-slate-400 hover:text-rose-600 transition p-1"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                        <button onclick="window.dbHapusSparepart('${sp.id}', this)" class="text-slate-400 hover:text-rose-600 transition p-1"><i class="fa-solid fa-trash-can text-sm"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -1317,13 +1389,25 @@
         }
 
         async function simpanFotoSesudah() {
+            const btn = document.getElementById('btnSimpanFotoSesudah');
             if(!window.appState.tempFotoSesudah) {
                 alert("Silakan pilih foto terlebih dahulu!");
                 return;
             }
-            if(window.appState.targetServiceIdAfter) {
-                await window.dbUpdateFotoSesudah(window.appState.targetServiceIdAfter, window.appState.tempFotoSesudah);
-                closeUploadAfterModal();
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Mengunggah...</span>`;
+
+            try {
+                if(window.appState.targetServiceIdAfter) {
+                    await window.dbUpdateFotoSesudah(window.appState.targetServiceIdAfter, window.appState.tempFotoSesudah);
+                    closeUploadAfterModal();
+                }
+            } catch(err) {
+                alert("Gagal menyimpan foto sesudah: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Simpan Foto</span>`;
             }
         }
 
@@ -1365,7 +1449,7 @@
             e.preventDefault();
             const btnSimpan = document.getElementById('btnSimpanOrder');
             btnSimpan.disabled = true;
-            btnSimpan.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Menyimpan...</span>`;
+            btnSimpan.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Menyimpan Work Order...</span>`;
 
             try {
                 const today = new Date();
@@ -1453,19 +1537,39 @@
             }
         }
 
-        function tambahMasterTeknisi() {
+        async function tambahMasterTeknisi() {
+            const btn = document.getElementById('btnTambahTeknisi');
             const val = document.getElementById('inputTeknisiBaru').value.trim();
             if(val) {
-                window.dbTambahTeknisi(val);
-                document.getElementById('inputTeknisiBaru').value = '';
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i>`;
+                try {
+                    await window.dbTambahTeknisi(val);
+                    document.getElementById('inputTeknisiBaru').value = '';
+                } catch(err) {
+                    alert("Gagal menambah teknisi: " + err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = `<span>Tambah</span>`;
+                }
             }
         }
 
-        function tambahMasterLayanan() {
+        async function tambahMasterLayanan() {
+            const btn = document.getElementById('btnTambahLayanan');
             const val = document.getElementById('inputLayananBaru').value.trim();
             if(val) {
-                window.dbTambahLayanan(val);
-                document.getElementById('inputLayananBaru').value = '';
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i>`;
+                try {
+                    await window.dbTambahLayanan(val);
+                    document.getElementById('inputLayananBaru').value = '';
+                } catch(err) {
+                    alert("Gagal menambah layanan: " + err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = `<span>Tambah</span>`;
+                }
             }
         }
 
@@ -1607,7 +1711,7 @@
                         </div>
                     </td>
                     <td class="p-3 text-center">
-                        <select onchange="window.dbUpdateStatusService('${item.id}', this.value)" class="text-[10px] font-bold px-2 py-1 rounded-lg ${badgeClass} border-none focus:outline-none cursor-pointer">
+                        <select onchange="window.dbUpdateStatusService('${item.id}', this.value, this)" class="text-[10px] font-bold px-2 py-1 rounded-lg ${badgeClass} border-none focus:outline-none cursor-pointer">
                             <option value="Menunggu" ${item.status==='Menunggu'?'selected':''}>Menunggu</option>
                             <option value="Proses" ${item.status==='Proses'?'selected':''}>Dalam Proses</option>
                             <option value="Selesai" ${item.status==='Selesai'?'selected':''}>Selesai</option>
@@ -1620,7 +1724,7 @@
                             <button onclick="openNotaModalById('${item.id}')" title="Cetak Nota Service" class="bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 p-1.5 rounded-lg text-xs font-bold transition">
                                 <i class="fa-solid fa-receipt"></i> Nota
                             </button>
-                            <button onclick="window.dbHapusService('${item.id}')" class="text-slate-400 hover:text-rose-600 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="window.dbHapusService('${item.id}', this)" class="text-slate-400 hover:text-rose-600 p-1 transition"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </td>
                 `;
@@ -1872,21 +1976,40 @@
                 }
             });
 
-            const labels = Object.keys(dateMap).sort();
-            const dataOmset = labels.map(l => dateMap[l].omset);
-            const dataProfit = labels.map(l => dateMap[l].profit);
+            const dates = Object.keys(dateMap).sort();
+            const omsetArr = dates.map(d => dateMap[d].omset);
+            const profitArr = dates.map(d => dateMap[d].profit);
 
             if(chartTrenInstance) chartTrenInstance.destroy();
             chartTrenInstance = new Chart(ctxTren, {
                 type: 'line',
                 data: {
-                    labels: labels.length ? labels : ['Belum Ada Data'],
+                    labels: dates.length > 0 ? dates : ['Belum Ada Data'],
                     datasets: [
-                        { label: 'Omset Kas', data: dataOmset, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', fill: true, tension: 0.3 },
-                        { label: 'Laba Bersih', data: dataProfit, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }
+                        {
+                            label: 'Total Omset',
+                            data: omsetArr.length > 0 ? omsetArr : [0],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Keuntungan Bersih',
+                            data: profitArr.length > 0 ? profitArr : [0],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true } }
+                }
             });
 
             const statusCounts = { Menunggu: 0, Proses: 0, Selesai: 0, Diserahkan: 0, Batal: 0 };
@@ -1900,11 +2023,21 @@
                 data: {
                     labels: ['Menunggu', 'Proses', 'Selesai', 'Diserahkan', 'Batal'],
                     datasets: [{
-                        data: Object.values(statusCounts),
-                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#64748b', '#f43f5e']
+                        data: [
+                            statusCounts.Menunggu, 
+                            statusCounts.Proses, 
+                            statusCounts.Selesai, 
+                            statusCounts.Diserahkan, 
+                            statusCounts.Batal
+                        ],
+                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#94a3b8', '#f43f5e']
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
             });
         }
     </script>
