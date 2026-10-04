@@ -44,6 +44,118 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen pb-12">
 
+    <!-- ======================================================== -->
+    <!-- MODAL LOCKSCREEN (PIN / KODE KHUSUS ADMIN)               -->
+    <!-- ======================================================== -->
+    <div id="lockscreenModal" class="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 sm:p-8 text-center space-y-6 border border-slate-100 animate-fade-in">
+            <div class="w-20 h-20 bg-brand-50 text-brand-600 rounded-3xl flex items-center justify-center mx-auto text-3xl shadow-inner border border-brand-100">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+
+            <div>
+                <h2 class="text-xl font-extrabold text-slate-800">Akses Terkunci</h2>
+                <p class="text-xs text-slate-500 mt-1">Masukkan kode khusus admin untuk membuka sistem perbaikan & data manajemen</p>
+            </div>
+
+            <form onsubmit="verifyAdminPasscode(event)" class="space-y-4">
+                <div>
+                    <input type="password" id="lockscreenInput" placeholder="Masukkan PIN / Kode Admin" required
+                        class="w-full text-center text-lg tracking-widest font-bold border-2 border-slate-200 rounded-2xl p-3 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:outline-none bg-slate-50 transition">
+                    <p id="lockscreenError" class="text-xs text-rose-600 font-semibold mt-2 hidden flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-circle-exclamation"></i> Kode khusus salah!
+                    </p>
+                </div>
+
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold py-3 rounded-2xl transition shadow-lg flex items-center justify-center gap-2 text-sm">
+                    <i class="fa-solid fa-key"></i> Buka Akses System
+                </button>
+            </form>
+
+            <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-400">
+                ZR-Service Security Portal
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL EDIT KODE KHUSUS ADMIN -->
+    <div id="modalEditPasscode" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-user-lock text-brand-600"></i> Ubah Kode Khusus Admin
+                </h3>
+                <button onclick="closeEditPasscodeModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            </div>
+
+            <form onsubmit="saveNewPasscode(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kode Lama</label>
+                    <input type="password" id="passcodeOldInput" required placeholder="Masukkan kode saat ini" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kode Baru</label>
+                    <input type="password" id="passcodeNewInput" required placeholder="Masukkan kode baru" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Konfirmasi Kode Baru</label>
+                    <input type="password" id="passcodeConfirmInput" required placeholder="Ulangi kode baru" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none bg-slate-50">
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" onclick="closeEditPasscodeModal()" class="bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl">Batal</button>
+                    <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> Simpan Kode Baru
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- MODAL EDIT SPAREPART -->
+    <div id="modalEditSparepart" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-emerald-600"></i> Edit Master Sparepart
+                </h3>
+                <button onclick="closeEditSparepartModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            </div>
+
+            <form onsubmit="simpanEditSparepart(event)" class="space-y-3">
+                <input type="hidden" id="editSpId">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Sparepart</label>
+                    <input type="text" id="editSpNama" required class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50">
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Stok</label>
+                        <input type="number" id="editSpStok" required min="0" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Harga Beli (Modal)</label>
+                        <input type="number" id="editSpHargaBeli" required min="0" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Harga Jual</label>
+                        <input type="number" id="editSpHargaJual" required min="0" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" onclick="closeEditSparepartModal()" class="bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl">Batal</button>
+                    <button type="submit" id="btnSimpanEditSp" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> Perbarui Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <!-- Header / Navbar -->
     <header class="bg-brand-900 text-white shadow-md sticky top-0 z-30 no-print">
         <div class="max-w-7xl mx-auto px-4 py-3.5 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-3">
@@ -69,12 +181,17 @@
                 </button>
             </div>
 
-            <!-- Status Firebase & Sync Control -->
+            <!-- Status Firebase, Security & Sync Control -->
             <div class="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
                 <div id="syncStatusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-brand-800 text-brand-200 border border-brand-700">
                     <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
                     <span>Menghubungkan Database...</span>
                 </div>
+
+                <!-- Tombol Edit Kode Khusus Admin -->
+                <button onclick="openEditPasscodeModal()" title="Ubah Kode Khusus Admin" class="bg-amber-600 hover:bg-amber-500 text-white border border-amber-400 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-key"></i> <span class="hidden sm:inline">Ubah Passcode</span>
+                </button>
 
                 <button onclick="exportBackupData()" title="Download Backup JSON" class="bg-brand-700 hover:bg-brand-600 text-white border border-brand-500 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Backup</span>
@@ -83,6 +200,11 @@
                     <i class="fa-solid fa-upload"></i> <span class="hidden sm:inline">Restore</span>
                     <input type="file" id="importFileInput" accept=".json" onchange="importBackupData(event)" class="hidden">
                 </label>
+
+                <!-- Tombol Lock Manual -->
+                <button onclick="lockScreenManual()" title="Kunci Tampilan System" class="bg-rose-700 hover:bg-rose-600 text-white border border-rose-500 text-xs font-bold px-2.5 py-1.5 rounded-xl transition">
+                    <i class="fa-solid fa-lock"></i>
+                </button>
             </div>
         </div>
     </header>
@@ -755,6 +877,7 @@
 
         function updateStatusBadge(online, text) {
             const badge = document.getElementById("syncStatusBadge");
+            if (!badge) return;
             if (online) {
                 badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-900/80 text-emerald-200 border border-emerald-700";
                 badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span><span>${text}</span>`;
@@ -799,7 +922,7 @@
             });
         }
 
-        // Firebase Operations dengan Loading State & Auto-Reload
+        // Firebase Operations
         window.dbSimpanService = async function(data) {
             await addDoc(collection(window.appState.db, "sp_services"), data);
             
@@ -818,6 +941,12 @@
 
         window.dbTambahSparepart = async function(spData) {
             await addDoc(collection(window.appState.db, "sp_sparepart"), spData);
+            window.renderMasterSparepart();
+            window.refreshSparepartDropdowns();
+        };
+
+        window.dbUpdateSparepart = async function(id, spData) {
+            await updateDoc(doc(window.appState.db, "sp_sparepart", id), spData);
             window.renderMasterSparepart();
             window.refreshSparepartDropdowns();
         };
@@ -846,7 +975,6 @@
         };
 
         window.dbUpdateStatusService = async function(id, newStatus, selectElement) {
-            let originalBg = selectElement ? selectElement.className : "";
             if(selectElement) {
                 selectElement.disabled = true;
                 selectElement.classList.add('opacity-50');
@@ -936,11 +1064,88 @@
         };
     </script>
 
-    <!-- UI Controller Script -->
+    <!-- UI & LOGIC SCRIPT -->
     <script>
         let chartTrenInstance = null;
         let chartStatusInstance = null;
         let orderSparepartRowCount = 0;
+
+        // MANAJEMEN PASSCODE & LOCKSCREEN
+        const DEFAULT_PASSCODE = "123";
+
+        function getAdminPasscode() {
+            return localStorage.getItem("zr_admin_passcode") || DEFAULT_PASSCODE;
+        }
+
+        function setAdminPasscode(newCode) {
+            localStorage.setItem("zr_admin_passcode", newCode);
+        }
+
+        function verifyAdminPasscode(e) {
+            e.preventDefault();
+            const inputVal = document.getElementById('lockscreenInput').value.trim();
+            const errorMsg = document.getElementById('lockscreenError');
+            const currentPasscode = getAdminPasscode();
+
+            if(inputVal === currentPasscode) {
+                errorMsg.classList.add('hidden');
+                document.getElementById('lockscreenModal').classList.add('hidden');
+                document.getElementById('lockscreenInput').value = '';
+            } else {
+                errorMsg.classList.remove('hidden');
+                document.getElementById('lockscreenInput').select();
+            }
+        }
+
+        function lockScreenManual() {
+            document.getElementById('lockscreenModal').classList.remove('hidden');
+            document.getElementById('lockscreenError').classList.add('hidden');
+            document.getElementById('lockscreenInput').value = '';
+            setTimeout(() => document.getElementById('lockscreenInput').focus(), 100);
+        }
+
+        function openEditPasscodeModal() {
+            document.getElementById('passcodeOldInput').value = '';
+            document.getElementById('passcodeNewInput').value = '';
+            document.getElementById('passcodeConfirmInput').value = '';
+            
+            const modal = document.getElementById('modalEditPasscode');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeEditPasscodeModal() {
+            const modal = document.getElementById('modalEditPasscode');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveNewPasscode(e) {
+            e.preventDefault();
+            const oldVal = document.getElementById('passcodeOldInput').value.trim();
+            const newVal = document.getElementById('passcodeNewInput').value.trim();
+            const confirmVal = document.getElementById('passcodeConfirmInput').value.trim();
+            const currentPasscode = getAdminPasscode();
+
+            if (oldVal !== currentPasscode) {
+                alert("Kode lama yang Anda masukkan salah!");
+                return;
+            }
+
+            if (newVal.length < 3) {
+                alert("Kode baru minimal harus 3 karakter!");
+                return;
+            }
+
+            if (newVal !== confirmVal) {
+                alert("Konfirmasi kode baru tidak cocok!");
+                return;
+            }
+
+            setAdminPasscode(newVal);
+            alert("Berhasil! Kode khusus admin telah diperbarui.");
+            closeEditPasscodeModal();
+        }
 
         document.addEventListener("DOMContentLoaded", () => {
             refreshFormDropdowns();
@@ -952,13 +1157,17 @@
                     document.querySelectorAll('.spDropdownOptions').forEach(el => el.classList.add('hidden'));
                 }
             });
+
+            setTimeout(() => {
+                const lockInput = document.getElementById('lockscreenInput');
+                if (lockInput) lockInput.focus();
+            }, 100);
         });
 
         function formatRupiah(number) {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number || 0);
         }
 
-        // FUNGSI KOMPRESI GAMBAR (PENTING AGAR FOTO KAMERA HP TIDAK FAIL SIMPAN KE FIRESTORE)
         function compressAndResizeImage(file, maxWidth = 1024, maxHeight = 1024, quality = 0.7) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -1016,7 +1225,7 @@
             }
         }
 
-        // SPAREPART ORDER DYNAMIC ROWS WITH SEARCHABLE COMBOBOX
+        // DYNAMIC SPAREPART ORDER ROWS
         function tambahBarisSparepartOrder() {
             orderSparepartRowCount++;
             const container = document.getElementById('sparepartOrderContainer');
@@ -1188,7 +1397,50 @@
             return { grandTotal, biayaJasa, labaSparepart, totalLabaBersih, totalSparepartJual, totalSparepartModal };
         }
 
-        // MASTER SPAREPART SEARCH & PAGINATION HANDLERS
+        // MASTER SPAREPART EDIT & SEARCH & PAGINATION
+        function openEditSparepartModal(id, nama, stok, hargaBeli, hargaJual) {
+            document.getElementById('editSpId').value = id;
+            document.getElementById('editSpNama').value = nama;
+            document.getElementById('editSpStok').value = stok;
+            document.getElementById('editSpHargaBeli').value = hargaBeli;
+            document.getElementById('editSpHargaJual').value = hargaJual;
+
+            const modal = document.getElementById('modalEditSparepart');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeEditSparepartModal() {
+            const modal = document.getElementById('modalEditSparepart');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function simpanEditSparepart(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSimpanEditSp');
+            const id = document.getElementById('editSpId').value;
+            const nama = document.getElementById('editSpNama').value.trim();
+            const stok = parseInt(document.getElementById('editSpStok').value) || 0;
+            const hargaBeli = parseFloat(document.getElementById('editSpHargaBeli').value) || 0;
+            const hargaJual = parseFloat(document.getElementById('editSpHargaJual').value) || 0;
+
+            if(!nama) return alert("Nama sparepart tidak boleh kosong!");
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Memperbarui...</span>`;
+
+            try {
+                await window.dbUpdateSparepart(id, { nama, stok, hargaBeli, hargaJual });
+                closeEditSparepartModal();
+            } catch(err) {
+                alert("Gagal mengupdate sparepart: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Perbarui Data</span>`;
+            }
+        }
+
         function onSparepartSearchChange() {
             window.appState.sparepartPage = 1;
             renderMasterSparepart();
@@ -1269,14 +1521,21 @@
                     <td class="p-3 font-extrabold text-emerald-600">${formatRupiah(sp.hargaJual)}</td>
                     <td class="p-3 font-bold text-emerald-700 bg-emerald-50/30">+${formatRupiah(margin)}</td>
                     <td class="p-3 text-center">
-                        <button onclick="window.dbHapusSparepart('${sp.id}', this)" class="text-slate-400 hover:text-rose-600 transition p-1"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="openEditSparepartModal('${sp.id}', '${sp.nama.replace(/'/g, "\\'")}', ${sp.stok}, ${sp.hargaBeli || 0}, ${sp.hargaJual || 0})" class="text-slate-400 hover:text-emerald-600 transition p-1" title="Edit Sparepart">
+                                <i class="fa-solid fa-pen-to-square text-sm"></i>
+                            </button>
+                            <button onclick="window.dbHapusSparepart('${sp.id}', this)" class="text-slate-400 hover:text-rose-600 transition p-1" title="Hapus Sparepart">
+                                <i class="fa-solid fa-trash-can text-sm"></i>
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         };
 
-        // Image Handling (DENGAN RESIZING & KOMPRESI OTOMATIS)
+        // IMAGE PREVIEW & WEBCAM
         async function previewFotoSebelum(event) {
             const file = event.target.files[0];
             if (file) {
@@ -1317,7 +1576,6 @@
             document.getElementById('previewSesudahContainer').classList.add('hidden');
         }
 
-        // DIRECT WEBCAM INTEGRATION
         async function bukaModalKameraDirect(target) {
             window.appState.activeCameraTarget = target;
             const modal = document.getElementById('modalWebcamDirect');
@@ -1713,290 +1971,60 @@
                     <td class="p-3 text-center">
                         <select onchange="window.dbUpdateStatusService('${item.id}', this.value, this)" class="text-[10px] font-bold px-2 py-1 rounded-lg ${badgeClass} border-none focus:outline-none cursor-pointer">
                             <option value="Menunggu" ${item.status==='Menunggu'?'selected':''}>Menunggu</option>
-                            <option value="Proses" ${item.status==='Proses'?'selected':''}>Dalam Proses</option>
+                            <option value="Proses" ${item.status==='Proses'?'selected':''}>Proses</option>
                             <option value="Selesai" ${item.status==='Selesai'?'selected':''}>Selesai</option>
                             <option value="Diserahkan" ${item.status==='Diserahkan'?'selected':''}>Diserahkan</option>
                             <option value="Batal" ${item.status==='Batal'?'selected':''}>Batal</option>
                         </select>
                     </td>
-                    <td class="p-3 text-center">
-                        <div class="flex items-center justify-center gap-1.5">
-                            <button onclick="openNotaModalById('${item.id}')" title="Cetak Nota Service" class="bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 p-1.5 rounded-lg text-xs font-bold transition">
-                                <i class="fa-solid fa-receipt"></i> Nota
-                            </button>
-                            <button onclick="window.dbHapusService('${item.id}', this)" class="text-slate-400 hover:text-rose-600 p-1 transition"><i class="fa-solid fa-trash-can"></i></button>
-                        </div>
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="openNotaModal('${item.id}')" class="text-brand-600 hover:text-brand-800 p-1" title="Cetak Nota"><i class="fa-solid fa-print"></i></button>
+                        <button onclick="window.dbHapusService('${item.id}', this)" class="text-slate-400 hover:text-rose-600 p-1" title="Hapus Work Order"><i class="fa-solid fa-trash-can"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // Inspection Modal Ops
-        function openInspectionModal(serviceId) {
-            const item = window.appState.services.find(s => s.id === serviceId);
-            if(!item) return;
-
-            document.getElementById('modalNota').textContent = item.notaNo;
-            document.getElementById('modalPelanggan').textContent = item.pelanggan;
-            document.getElementById('modalUnit').textContent = item.unit;
-
-            const boxSebelum = document.getElementById('modalFotoSebelumBox');
-            const boxSesudah = document.getElementById('modalFotoSesudahBox');
-
-            boxSebelum.innerHTML = item.fotoSebelum 
-                ? `<img src="${item.fotoSebelum}" class="h-full w-full object-cover rounded-lg cursor-pointer" onclick="window.open('${item.fotoSebelum}')">` 
-                : `<span class="text-slate-400 text-[10px]">Tanpa Foto</span>`;
-
-            boxSesudah.innerHTML = item.fotoSesudah 
-                ? `<img src="${item.fotoSesudah}" class="h-full w-full object-cover rounded-lg cursor-pointer" onclick="window.open('${item.fotoSesudah}')">` 
-                : `<span class="text-slate-400 text-[10px]">Belum Diupload</span>`;
-
-            const container = document.getElementById('modalChecklistList');
-            container.innerHTML = '';
-
-            const results = item.inspectionResults || {};
-            const keys = Object.keys(results);
-
-            if(keys.length === 0) {
-                container.innerHTML = `<p class="col-span-2 text-slate-400 italic">Tidak ada catatan inspeksi awal.</p>`;
-            } else {
-                keys.forEach(k => {
-                    const status = results[k];
-                    let badge = `<span class="text-emerald-600 font-bold">🟢 Normal</span>`;
-                    if(status === 'Rusak') badge = `<span class="text-rose-600 font-bold">🔴 Rusak</span>`;
-                    if(status === 'N/A') badge = `<span class="text-slate-400 font-medium">⚪ Tidak Dicek</span>`;
-
-                    const div = document.createElement('div');
-                    div.className = "flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200";
-                    div.innerHTML = `<span class="font-semibold text-slate-700">${k}:</span> ${badge}`;
-                    container.appendChild(div);
-                });
-            }
-
-            document.getElementById('modalInspection').classList.remove('hidden');
-            document.getElementById('modalInspection').classList.add('flex');
-        }
-
-        function closeInspectionModal() {
-            document.getElementById('modalInspection').classList.add('hidden');
-            document.getElementById('modalInspection').classList.remove('flex');
-        }
-
-        // Printable Nota Service Modal
-        function openNotaModalById(id) {
-            const item = window.appState.services.find(s => s.id === id);
-            if(item) openNotaModalByObject(item);
-        }
-
-        function openNotaModalByObject(item) {
-            window.appState.currentActiveNotaItem = item;
-
-            document.getElementById('notaNoDisplay').textContent = item.notaNo;
-            document.getElementById('notaTglDisplay').textContent = `Tgl: ${item.tanggal}`;
-            document.getElementById('notaPelangganDisplay').textContent = item.pelanggan;
-            document.getElementById('notaTelpDisplay').textContent = item.telp;
-            document.getElementById('notaTeknisiDisplay').textContent = item.teknisi;
-            document.getElementById('notaLayananDisplay').textContent = item.jenisLayanan;
-            document.getElementById('notaUnitDisplay').textContent = item.unit;
-            document.getElementById('notaKeluhanDisplay').textContent = item.keluhan;
-
-            const totalBiaya = item.biayaTotal || item.biaya || 0;
-            document.getElementById('notaBiayaDisplay').textContent = formatRupiah(totalBiaya);
-
-            const rincianBody = document.getElementById('notaRincianBody');
-            rincianBody.innerHTML = '';
-
-            const trJasa = document.createElement('tr');
-            trJasa.className = "border-b border-slate-100";
-            trJasa.innerHTML = `
-                <td class="py-1">Biaya Jasa / Service (${item.jenisLayanan})</td>
-                <td class="py-1 text-center">1</td>
-                <td class="py-1 text-right">${formatRupiah(item.biayaJasa || totalBiaya)}</td>
-                <td class="py-1 text-right font-bold">${formatRupiah(item.biayaJasa || totalBiaya)}</td>
-            `;
-            rincianBody.appendChild(trJasa);
-
-            if(item.sparepartsUsed && item.sparepartsUsed.length > 0) {
-                item.sparepartsUsed.forEach(sp => {
-                    const trSp = document.createElement('tr');
-                    trSp.className = "border-b border-slate-100";
-                    trSp.innerHTML = `
-                        <td class="py-1">${sp.nama}</td>
-                        <td class="py-1 text-center">${sp.qty}</td>
-                        <td class="py-1 text-right">${formatRupiah(sp.hargaJual)}</td>
-                        <td class="py-1 text-right font-bold">${formatRupiah(sp.subtotalJual)}</td>
-                    `;
-                    rincianBody.appendChild(trSp);
-                });
-            }
-
-            document.getElementById('modalNotaService').classList.remove('hidden');
-            document.getElementById('modalNotaService').classList.add('flex');
-        }
-
-        function closeNotaModal() {
-            document.getElementById('modalNotaService').classList.add('hidden');
-            document.getElementById('modalNotaService').classList.remove('flex');
-        }
-
-        function salinTeksNotaWA() {
-            const item = window.appState.currentActiveNotaItem;
-            if(!item) return;
-
-            const totalBiaya = item.biayaTotal || item.biaya || 0;
-            const txt = `*NOTA ZR-Service - TANDA TERIMA* 🛠\n` +
-                        `No. Nota: *${item.notaNo}*\n` +
-                        `Tanggal: ${item.tanggal}\n` +
-                        `Pelanggan: ${item.pelanggan}\n` +
-                        `Perangkat: *${item.unit}*\n` +
-                        `Layanan: ${item.jenisLayanan}\n` +
-                        `Keluhan: _${item.keluhan}_\n` +
-                        `Total Biaya: *${formatRupiah(totalBiaya)}*\n` +
-                        `Status Service: *${item.status}*\n\n` +
-                        `Lacak status pengerjaan & foto kondisi perangkat Anda di portal resmi kami. Terima kasih!`;
-
-            navigator.clipboard.writeText(txt).then(() => {
-                alert("Teks Nota Service berhasil disalin!");
-            });
-        }
-
-        // Monitoring / Tracking Status Pelanggan
-        function lacakStatusPelanggan() {
-            const query = (document.getElementById('trackQueryInput').value || '').trim().toLowerCase();
-            const resultArea = document.getElementById('trackingResultArea');
-
-            if(!query) {
-                alert("Masukkan Nomor Nota atau WhatsApp terlebih dahulu!");
-                return;
-            }
-
-            const services = window.appState.services || [];
-            const found = services.filter(s => 
-                (s.notaNo || '').toLowerCase().includes(query) ||
-                (s.telp || '').toLowerCase().includes(query)
-            );
-
-            resultArea.classList.remove('hidden');
-            resultArea.innerHTML = '';
-
-            if(found.length === 0) {
-                resultArea.innerHTML = `
-                    <div class="text-center py-6 text-slate-400 space-y-2">
-                        <i class="fa-solid fa-circle-exclamation text-3xl text-rose-500"></i>
-                        <p class="font-bold text-slate-700">Data Service Tidak Ditemukan</p>
-                        <p class="text-xs">Pastikan Nomor Nota (${query}) atau Nomor Telp yang Anda masukkan sudah benar.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            found.forEach(item => {
-                let statusBadge = `<span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-extrabold text-xs">Menunggu Antrean</span>`;
-
-                if(item.status === 'Proses') {
-                    statusBadge = `<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-extrabold text-xs">Dalam Perbaikan</span>`;
-                } else if(item.status === 'Selesai') {
-                    statusBadge = `<span class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-extrabold text-xs">Selesai & Siap Diambil</span>`;
-                } else if(item.status === 'Diserahkan') {
-                    statusBadge = `<span class="bg-slate-200 text-slate-800 px-3 py-1 rounded-full font-extrabold text-xs">Telah Diserahkan</span>`;
-                } else if(item.status === 'Batal') {
-                    statusBadge = `<span class="bg-rose-100 text-rose-800 px-3 py-1 rounded-full font-extrabold text-xs">Dibatalkan</span>`;
-                }
-
-                const card = document.createElement('div');
-                card.className = "space-y-4 border-b border-slate-100 pb-6 last:border-0 last:pb-0";
-                card.innerHTML = `
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <div>
-                            <span class="text-xs text-slate-400">Nomor Tanda Terima</span>
-                            <h3 class="text-lg font-black text-brand-900">${item.notaNo}</h3>
-                        </div>
-                        <div>${statusBadge}</div>
-                    </div>
-
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 text-xs">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <span class="text-slate-400 block">Pelanggan:</span>
-                                <span class="font-bold text-slate-800">${item.pelanggan}</span>
-                            </div>
-                            <div>
-                                <span class="text-slate-400 block">Perangkat Unit:</span>
-                                <span class="font-bold text-slate-800">${item.unit}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                resultArea.appendChild(card);
-            });
-        }
-
-        // BACKUP & RESTORE JSON
-        function exportBackupData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-                services: window.appState.services,
-                sparepartList: window.appState.sparepartList
-            }, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `ZR_Service_Backup_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function importBackupData(e) {
-            const fileReader = new FileReader();
-            fileReader.onload = function (event) {
-                try {
-                    const obj = JSON.parse(event.target.result);
-                    window.dbRestoreBulkData(obj);
-                } catch (err) {
-                    alert("Format JSON Backup tidak valid!");
-                }
-            };
-            fileReader.readAsText(e.target.files[0]);
-        }
-
-        // CHARTS RENDER
+        // CHARTS RENDERING
         function renderCharts(services) {
-            if(!document.getElementById('chartTrenService')) return;
+            const ctxTren = document.getElementById('chartTrenService');
+            const ctxStatus = document.getElementById('chartStatusPie');
 
-            const ctxTren = document.getElementById('chartTrenService').getContext('2d');
-            const ctxStatus = document.getElementById('chartStatusPie').getContext('2d');
+            if (!ctxTren || !ctxStatus) return;
 
-            const dateMap = {};
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+            const omsetMonthly = new Array(12).fill(0);
+            const profitMonthly = new Array(12).fill(0);
+
             services.forEach(s => {
-                if(s.status === 'Diserahkan' || s.status === 'Selesai') {
-                    const d = s.tanggal || 'N/A';
-                    if(!dateMap[d]) dateMap[d] = { omset: 0, profit: 0 };
-                    dateMap[d].omset += (s.biayaTotal || s.biaya || 0);
-                    dateMap[d].profit += ((s.biayaJasa || 0) + (s.labaSparepart || 0));
+                if (s.status === 'Diserahkan' || s.status === 'Selesai') {
+                    const d = new Date(s.tanggal);
+                    if (!isNaN(d.getTime())) {
+                        const m = d.getMonth();
+                        omsetMonthly[m] += (s.biayaTotal || s.biaya || 0);
+                        profitMonthly[m] += ((s.biayaJasa || 0) + (s.labaSparepart || 0));
+                    }
                 }
             });
 
-            const dates = Object.keys(dateMap).sort();
-            const omsetArr = dates.map(d => dateMap[d].omset);
-            const profitArr = dates.map(d => dateMap[d].profit);
-
-            if(chartTrenInstance) chartTrenInstance.destroy();
+            if (chartTrenInstance) chartTrenInstance.destroy();
             chartTrenInstance = new Chart(ctxTren, {
                 type: 'line',
                 data: {
-                    labels: dates.length > 0 ? dates : ['Belum Ada Data'],
+                    labels: months,
                     datasets: [
                         {
-                            label: 'Total Omset',
-                            data: omsetArr.length > 0 ? omsetArr : [0],
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            label: 'Total Omset (Rp)',
+                            data: omsetMonthly,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
                             fill: true,
                             tension: 0.3
                         },
                         {
-                            label: 'Keuntungan Bersih',
-                            data: profitArr.length > 0 ? profitArr : [0],
+                            label: 'Laba Bersih (Rp)',
+                            data: profitMonthly,
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
                             fill: true,
@@ -2007,30 +2035,23 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
-                    scales: { y: { beginAtZero: true } }
+                    plugins: { legend: { position: 'top' } }
                 }
             });
 
             const statusCounts = { Menunggu: 0, Proses: 0, Selesai: 0, Diserahkan: 0, Batal: 0 };
             services.forEach(s => {
-                if(statusCounts[s.status] !== undefined) statusCounts[s.status]++;
+                if (statusCounts[s.status] !== undefined) statusCounts[s.status]++;
             });
 
-            if(chartStatusInstance) chartStatusInstance.destroy();
+            if (chartStatusInstance) chartStatusInstance.destroy();
             chartStatusInstance = new Chart(ctxStatus, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Menunggu', 'Proses', 'Selesai', 'Diserahkan', 'Batal'],
+                    labels: Object.keys(statusCounts),
                     datasets: [{
-                        data: [
-                            statusCounts.Menunggu, 
-                            statusCounts.Proses, 
-                            statusCounts.Selesai, 
-                            statusCounts.Diserahkan, 
-                            statusCounts.Batal
-                        ],
-                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#94a3b8', '#f43f5e']
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#64748b', '#ef4444']
                     }]
                 },
                 options: {
@@ -2039,6 +2060,251 @@
                     plugins: { legend: { position: 'bottom' } }
                 }
             });
+        }
+
+        // MODAL INSPEKSI & NOTA
+        function openInspectionModal(id) {
+            const item = window.appState.services.find(s => s.id === id);
+            if (!item) return;
+
+            document.getElementById('modalNota').textContent = item.notaNo;
+            document.getElementById('modalPelanggan').textContent = item.pelanggan;
+            document.getElementById('modalUnit').textContent = item.unit;
+
+            const boxBefore = document.getElementById('modalFotoSebelumBox');
+            boxBefore.innerHTML = item.fotoSebelum 
+                ? `<img src="${item.fotoSebelum}" class="h-full w-full object-cover">` 
+                : `<span class="text-slate-400 italic text-[10px]">Foto tidak ada</span>`;
+
+            const boxAfter = document.getElementById('modalFotoSesudahBox');
+            boxAfter.innerHTML = item.fotoSesudah 
+                ? `<img src="${item.fotoSesudah}" class="h-full w-full object-cover">` 
+                : `<span class="text-slate-400 italic text-[10px]">Foto tidak ada</span>`;
+
+            const checkContainer = document.getElementById('modalChecklistList');
+            checkContainer.innerHTML = '';
+            
+            if (item.inspectionResults) {
+                Object.entries(item.inspectionResults).forEach(([k, v]) => {
+                    let badge = '<span class="text-emerald-600 font-bold">🟢 Normal</span>';
+                    if (v === 'Rusak') badge = '<span class="text-rose-600 font-bold">🔴 Rusak</span>';
+                    if (v === 'N/A') badge = '<span class="text-slate-400">⚪ N/A</span>';
+                    
+                    const d = document.createElement('div');
+                    d.className = "flex justify-between items-center bg-white p-1.5 rounded border";
+                    d.innerHTML = `<span class="text-slate-600 font-medium">${k}:</span> ${badge}`;
+                    checkContainer.appendChild(d);
+                });
+            } else {
+                checkContainer.innerHTML = '<p class="text-slate-400 italic col-span-2">Tidak ada data checklist.</p>';
+            }
+
+            const modal = document.getElementById('modalInspection');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeInspectionModal() {
+            const modal = document.getElementById('modalInspection');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openNotaModal(id) {
+            const item = window.appState.services.find(s => s.id === id);
+            if (item) openNotaModalByObject(item);
+        }
+
+        function openNotaModalByObject(item) {
+            window.appState.currentActiveNotaItem = item;
+
+            document.getElementById('notaNoDisplay').textContent = item.notaNo;
+            document.getElementById('notaTglDisplay').textContent = item.tanggal;
+            document.getElementById('notaPelangganDisplay').textContent = item.pelanggan;
+            document.getElementById('notaTelpDisplay').textContent = item.telp;
+            document.getElementById('notaTeknisiDisplay').textContent = item.teknisi;
+            document.getElementById('notaLayananDisplay').textContent = item.jenisLayanan;
+            document.getElementById('notaUnitDisplay').textContent = item.unit;
+            document.getElementById('notaKeluhanDisplay').textContent = item.keluhan;
+
+            const tbody = document.getElementById('notaRincianBody');
+            tbody.innerHTML = '';
+
+            let grandTotal = item.biayaTotal || item.biaya || 0;
+
+            if (item.sparepartsUsed && item.sparepartsUsed.length > 0) {
+                item.sparepartsUsed.forEach(sp => {
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-100";
+                    tr.innerHTML = `
+                        <td class="py-1">${sp.nama}</td>
+                        <td class="py-1 text-center">${sp.qty}</td>
+                        <td class="py-1 text-right">${formatRupiah(sp.hargaJual)}</td>
+                        <td class="py-1 text-right font-semibold">${formatRupiah(sp.subtotalJual)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            const trJasa = document.createElement('tr');
+            trJasa.className = "border-b border-slate-100 font-medium";
+            trJasa.innerHTML = `
+                <td class="py-1">Biaya Jasa Service (${item.jenisLayanan})</td>
+                <td class="py-1 text-center">1</td>
+                <td class="py-1 text-right">${formatRupiah(item.biayaJasa)}</td>
+                <td class="py-1 text-right font-semibold">${formatRupiah(item.biayaJasa)}</td>
+            `;
+            tbody.appendChild(trJasa);
+
+            document.getElementById('notaBiayaDisplay').textContent = formatRupiah(grandTotal);
+
+            const modal = document.getElementById('modalNotaService');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeNotaModal() {
+            const modal = document.getElementById('modalNotaService');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function salinTeksNotaWA() {
+            const item = window.appState.currentActiveNotaItem;
+            if (!item) return;
+
+            let teks = `*ZR-SERVICE NOTA ONLINE*\n`;
+            teks += `=========================\n`;
+            teks += `No. Nota : ${item.notaNo}\n`;
+            teks += `Tgl : ${item.tanggal}\n`;
+            teks += `Pelanggan : ${item.pelanggan}\n`;
+            teks += `Unit : ${item.unit}\n`;
+            teks += `Keluhan : ${item.keluhan}\n`;
+            teks += `Status : *${item.status}*\n`;
+            teks += `-------------------------\n`;
+            teks += `Total Biaya : *${formatRupiah(item.biayaTotal || item.biaya || 0)}*\n\n`;
+            teks += `Cek status & foto perbaikan secara online di portal web kami.\n`;
+            teks += `Terima kasih atas kepercayaan Anda!`;
+
+            navigator.clipboard.writeText(teks).then(() => {
+                alert("Teks Nota berhasil disalin ke clipboard!");
+            }).catch(err => {
+                alert("Gagal menyalin teks: " + err.message);
+            });
+        }
+
+        // PUBLIC TRACKING PORTAL LOGIC
+        function lacakStatusPelanggan() {
+            const query = document.getElementById('trackQueryInput').value.trim().toLowerCase();
+            const resultArea = document.getElementById('trackingResultArea');
+
+            if (!query) {
+                alert("Masukkan No. Nota atau Nomor WA!");
+                return;
+            }
+
+            const match = window.appState.services.find(s => 
+                (s.notaNo || '').toLowerCase() === query || 
+                (s.telp || '').toLowerCase() === query
+            );
+
+            resultArea.classList.remove('hidden');
+
+            if (!match) {
+                resultArea.innerHTML = `
+                    <div class="text-center py-6 space-y-2">
+                        <i class="fa-solid fa-circle-xmark text-rose-500 text-3xl"></i>
+                        <h4 class="font-bold text-slate-800">Data Tidak Ditemukan</h4>
+                        <p class="text-xs text-slate-500">Pastikan No. Nota atau Nomor WhatsApp yang Anda masukkan sudah benar.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let badgeSts = "bg-amber-100 text-amber-800";
+            if (match.status === 'Proses') badgeSts = "bg-blue-100 text-blue-800";
+            if (match.status === 'Selesai') badgeSts = "bg-emerald-100 text-emerald-800";
+            if (match.status === 'Diserahkan') badgeSts = "bg-slate-200 text-slate-800";
+
+            resultArea.innerHTML = `
+                <div class="border-b pb-4 flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-slate-400 block uppercase">STATUS PERBAIKAN</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-black inline-block mt-1 ${badgeSts}">${match.status}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-extrabold text-brand-600 block text-sm">${match.notaNo}</span>
+                        <span class="text-xs text-slate-400">${match.tanggal}</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <p class="text-slate-400 font-medium">Pelanggan</p>
+                        <p class="font-bold text-slate-800">${match.pelanggan}</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 font-medium">Perangkat Unit</p>
+                        <p class="font-bold text-slate-800">${match.unit}</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-xl border text-xs space-y-1">
+                    <p class="font-bold text-slate-700">Keluhan Unit:</p>
+                    <p class="italic text-slate-600">${match.keluhan}</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="border rounded-xl p-2 bg-slate-50 text-center">
+                        <span class="text-[10px] font-bold text-slate-500 block mb-1">Foto Sebelum</span>
+                        ${match.fotoSebelum ? `<img src="${match.fotoSebelum}" class="h-28 mx-auto rounded object-cover">` : `<span class="text-slate-400 italic text-[10px]">Belum ada foto</span>`}
+                    </div>
+                    <div class="border rounded-xl p-2 bg-slate-50 text-center">
+                        <span class="text-[10px] font-bold text-slate-500 block mb-1">Foto Selesai</span>
+                        ${match.fotoSesudah ? `<img src="${match.fotoSesudah}" class="h-28 mx-auto rounded object-cover">` : `<span class="text-slate-400 italic text-[10px]">Belum ada foto</span>`}
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t flex justify-between items-center text-xs">
+                    <span class="font-bold text-slate-600">Estimasi Total Biaya:</span>
+                    <span class="font-extrabold text-emerald-600 text-sm">${formatRupiah(match.biayaTotal || match.biaya || 0)}</span>
+                </div>
+            `;
+        }
+
+        // BACKUP & RESTORE DATA JSON
+        function exportBackupData() {
+            const dataObj = {
+                services: window.appState.services,
+                sparepartList: window.appState.sparepartList,
+                exportDate: new Date().toISOString()
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `ZR_Service_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        function importBackupData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (confirm("Restore data dari file backup? Data di Firebase akan diperbarui.")) {
+                        await window.dbRestoreBulkData(parsed);
+                    }
+                } catch (err) {
+                    alert("Format file JSON tidak valid: " + err.message);
+                }
+            };
+            reader.readAsText(file);
         }
     </script>
 </body>
